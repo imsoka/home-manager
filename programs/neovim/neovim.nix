@@ -20,6 +20,7 @@
       intelephense
       lua-language-server
       nixd
+      gopls
     ];
 
     extraLuaConfig = ''
@@ -29,6 +30,7 @@
       ${builtins.readFile ./lua/lsp/lua_ls.lua}
       ${builtins.readFile ./lua/lsp/intelephense.lua}
       ${builtins.readFile ./lua/lsp/nixd.lua}
+      ${builtins.readFile ./lua/lsp/gopls.lua}
     '';
 
     plugins = with pkgs.vimPlugins; [
