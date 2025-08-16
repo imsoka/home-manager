@@ -19,6 +19,7 @@
     extraPackages = with pkgs; [
       intelephense
       lua-language-server
+      nixd
     ];
 
     extraLuaConfig = ''
@@ -27,6 +28,7 @@
       -- LSP Servers
       ${builtins.readFile ./lua/lsp/lua_ls.lua}
       ${builtins.readFile ./lua/lsp/intelephense.lua}
+      ${builtins.readFile ./lua/lsp/nixd.lua}
     '';
 
     plugins = with pkgs.vimPlugins; [
@@ -51,8 +53,6 @@
         plugin = nvim-cmp;
         config = toLuaFile ./lua/plugins/nvim-cmp.lua;
       }
-
-
     ];
   };
 }
