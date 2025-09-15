@@ -3,6 +3,7 @@
 {
   imports = [
     ./programs/neovim/neovim.nix
+    ./programs/codex/codex.nix
     ./window-managers/i3/i3.nix
   ];
 

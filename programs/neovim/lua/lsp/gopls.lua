@@ -1,2 +1,2 @@
-vim.lsp.enable("nixd")
+vim.lsp.enable("gopls")
 
