@@ -1,4 +1,5 @@
-{ config, pkgs, ... }:
+# fingerprintPatch: solo el portátil (soka-work) lleva el icono de huella en Noctalia.
+{ config, pkgs, fingerprintPatch ? false, ... }:
 
 {
   imports = [
@@ -24,10 +25,13 @@
     brightnessctl
     playerctl
     jq
-    # Noctalia con el icono de huella rojo/verde en la pantalla de bloqueo
-    (noctalia.overrideAttrs (old: {
-      patches = (old.patches or [ ]) ++ [ ./programs/noctalia/fingerprint-lockscreen.patch ];
-    }))
+    # Noctalia; con fingerprintPatch, el icono de huella rojo/verde en bloqueo y polkit
+    (if fingerprintPatch then
+      noctalia.overrideAttrs (old: {
+        patches = (old.patches or [ ]) ++ [ ./programs/noctalia/fingerprint-lockscreen.patch ];
+      })
+    else
+      noctalia)
     wtype
   ];
 

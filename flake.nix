@@ -15,13 +15,14 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
     in {
-      # Trabajo: home-manager switch --flake .#soka
-      homeConfigurations."soka" = home-manager.lib.homeManagerConfiguration {
+      # Trabajo: home-manager switch --flake .#soka-work
+      homeConfigurations."soka-work" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
 
         # Specify your home configuration modules here, for example,
         # the path to your home.nix.
-        # noctalia.nix (plugin de batería) solo en el portátil
+        # noctalia.nix (plugin de batería) y parche de huella solo en el portátil
+        extraSpecialArgs = { fingerprintPatch = true; };
         modules = [
           ./home.nix
           ./programs/noctalia/noctalia.nix
@@ -32,9 +33,10 @@
         # to pass through arguments to home.nix
       };
 
-      # Personal: home-manager switch --flake .#soka-personal
-      homeConfigurations."soka-personal" = home-manager.lib.homeManagerConfiguration {
+      # Personal: home-manager switch --flake .#soka
+      homeConfigurations."soka" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
+        extraSpecialArgs = { fingerprintPatch = false; };
         modules = [
           ./home.nix
           ./programs/noctalia/gaming.nix
