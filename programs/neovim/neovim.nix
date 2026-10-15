@@ -23,7 +23,7 @@
       gopls
     ];
 
-    extraLuaConfig = ''
+    initLua = ''
       ${builtins.readFile ./lua/options.lua}
 
       -- LSP Servers
@@ -55,6 +55,8 @@
         plugin = nvim-cmp;
         config = toLuaFile ./lua/plugins/nvim-cmp.lua;
       }
+
+      git-blame-nvim
     ];
   };
 }
