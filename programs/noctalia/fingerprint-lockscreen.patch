@@ -1,0 +1,356 @@
+--- a/src/shell/lockscreen/lock_surface.cpp
++++ b/src/shell/lockscreen/lock_surface.cpp
+@@ -432,6 +432,15 @@
+       )
+   );
+   m_authPanel->addChild(
++      ui::glyph({
++          .out = &m_fingerprintGlyph,
++          .glyph = "fingerprint",
++          .glyphSize = Style::fontSizeCaption * 1.6F,
++          .color = colorSpecFromRole(ColorRole::OnSurfaceVariant),
++          .visible = false,
++      })
++  );
++  m_authPanel->addChild(
+       ui::label({
+           .out = &m_authLabel,
+           .fontSize = Style::fontSizeCaption,
+@@ -683,6 +692,14 @@
+   requestUpdate();
+ }
+ 
++void LockSurface::setFingerprintState(FingerprintState state) {
++  if (m_fingerprintState == state) {
++    return;
++  }
++  m_fingerprintState = state;
++  requestUpdate();
++}
++
+ void LockSurface::setKeyboardIndicators(
+     bool capsLock, bool hasMultipleLayouts, bool layoutSwitchable, std::string layoutLabel
+ ) {
+@@ -1512,6 +1529,26 @@
+       m_authLabel->setText(text);
+       m_authLabel->setColor(colorSpecFromRole(isError ? ColorRole::Error : ColorRole::OnSurfaceVariant));
+     }
++
++    // Icono de huella: gris mientras escanea, rojo en error, verde al autenticar.
++    if (m_fingerprintGlyph != nullptr) {
++      const bool showFingerprint = show && m_fingerprintState != FingerprintState::Hidden;
++      m_fingerprintGlyph->setVisible(showFingerprint);
++      if (showFingerprint) {
++        switch (m_fingerprintState) {
++        case FingerprintState::Error:
++          m_fingerprintGlyph->setColor(colorSpecFromRole(ColorRole::Error));
++          break;
++        case FingerprintState::Success:
++          m_fingerprintGlyph->setColor(fixedColorSpec(rgba(0.298F, 0.686F, 0.314F, 1.0F)));
++          break;
++        case FingerprintState::Scanning:
++        case FingerprintState::Hidden:
++          m_fingerprintGlyph->setColor(colorSpecFromRole(ColorRole::OnSurfaceVariant));
++          break;
++        }
++      }
++    }
+   }
+ 
+   if (m_layoutChip != nullptr) {
+--- a/src/shell/lockscreen/lock_surface.h
++++ b/src/shell/lockscreen/lock_surface.h
+@@ -1,5 +1,7 @@
+ #pragma once
+ 
++#include "shell/lockscreen/fingerprint_state.h"
++
+ #include "capture/screencopy_capture.h"
+ #include "config/config_service.h"
+ #include "render/animation/animation_manager.h"
+@@ -56,6 +58,7 @@
+   bool initialize(ext_session_lock_v1* lock, wl_output* output, std::int32_t scale);
+   void setLockedState(bool locked);
+   void setPromptState(std::string user, std::string password, std::string status, bool error, bool authenticating);
++  void setFingerprintState(FingerprintState state);
+   void setKeyboardIndicators(bool capsLock, bool hasMultipleLayouts, bool layoutSwitchable, std::string layoutLabel);
+   void setTextureCache(SharedTextureCache* cache) noexcept { m_textureCache = cache; }
+   void setWallpaperPath(std::string wallpaperPath);
+@@ -179,7 +182,9 @@
+   Flex* m_forecastRow = nullptr;
+   std::array<ForecastColumn, 5> m_forecastColumns{};
+   Flex* m_authPanel = nullptr;
++  Glyph* m_fingerprintGlyph = nullptr;
+   Label* m_authLabel = nullptr;
++  FingerprintState m_fingerprintState = FingerprintState::Hidden;
+   Flex* m_loginContentRow = nullptr;
+   Input* m_passwordField = nullptr;
+   Button* m_loginButton = nullptr;
+--- a/src/shell/lockscreen/lock_screen.cpp
++++ b/src/shell/lockscreen/lock_screen.cpp
+@@ -99,8 +99,14 @@
+     m_fingerprint->setAuthenticatedCallback([this]() {
+       m_status = i18n::tr("lockscreen.unlocked");
+       m_statusIsError = false;
++      // Muestra el icono en verde un instante antes de desbloquear.
++      m_fingerprintState = FingerprintState::Success;
+       updatePromptOnSurfaces();
+-      unlock();
++      m_fingerprintSuccessTimer.start(std::chrono::milliseconds(700), [this]() {
++        if (m_locked) {
++          unlock();
++        }
++      });
+     });
+     m_fingerprint->setStatusCallback([this](const std::string& message, bool isError) {
+       handleFingerprintStatus(message, isError);
+@@ -982,6 +988,7 @@
+   surface->setOnPasswordChanged([this](const std::string& value) { handlePasswordEdited(value); });
+   surface->setLoginBoxServices(m_sessionActions, m_mpris, m_weather, m_httpClient);
+   surface->setPromptState(m_user, m_password, m_status, m_statusIsError, m_authenticating);
++  surface->setFingerprintState(m_fingerprintState);
+   applyIndicatorsToSurface(*surface);
+ 
+   surface->setBlackout(!isInteractiveOutput(output));
+@@ -1035,6 +1042,7 @@
+ void LockScreen::updatePromptOnSurfaces() {
+   for (auto& instance : m_instances) {
+     instance.surface->setPromptState(m_user, m_password, m_status, m_statusIsError, m_authenticating);
++    instance.surface->setFingerprintState(m_fingerprintState);
+   }
+ }
+ 
+@@ -1178,6 +1186,9 @@
+ }
+ 
+ void LockScreen::stopFingerprint() {
++  if (m_fingerprintState != FingerprintState::Success) {
++    m_fingerprintState = FingerprintState::Hidden;
++  }
+   if (m_fingerprint != nullptr) {
+     m_fingerprint->stop();
+   }
+@@ -1194,6 +1205,11 @@
+   // Empty message means verification disarmed; fall back to the idle prompt (rendered by the surface).
+   m_status = message.empty() ? std::string{} : message;
+   m_statusIsError = isError;
++  if (message.empty()) {
++    m_fingerprintState = FingerprintState::Hidden;
++  } else {
++    m_fingerprintState = isError ? FingerprintState::Error : FingerprintState::Scanning;
++  }
+   updatePromptOnSurfaces();
+ }
+ 
+--- a/src/shell/lockscreen/lock_screen.h
++++ b/src/shell/lockscreen/lock_screen.h
+@@ -1,5 +1,7 @@
+ #pragma once
+ 
++#include "shell/lockscreen/fingerprint_state.h"
++
+ #include "auth/pam_authenticator.h"
+ #include "capture/screencopy_capture.h"
+ #include "core/timer_manager.h"
+@@ -146,6 +148,8 @@
+   std::string m_status;
+   wl_surface* m_pointerSurface = nullptr;
+   bool m_statusIsError = false;
++  FingerprintState m_fingerprintState = FingerprintState::Hidden;
++  Timer m_fingerprintSuccessTimer;
+   bool m_authenticating = false;
+   std::uint64_t m_authGeneration = 0;
+   bool m_lockPending = false;
+--- a/src/dbus/polkit/polkit_agent.cpp
++++ b/src/dbus/polkit/polkit_agent.cpp
+@@ -1,11 +1,13 @@
+ #include "dbus/polkit/polkit_agent.h"
+ 
+ #include "core/log.h"
++#include "core/timer_manager.h"
+ #include "dbus/polkit/polkit_session_support.h"
+ #include "i18n/i18n.h"
+ 
+ #include <algorithm>
+ #include <array>
++#include <cctype>
+ #include <cstdlib>
+ #include <cstring>
+ #include <exception>
+@@ -289,6 +291,22 @@
+   std::string inputPrompt;
+   std::string supplementaryMessage;
+   bool supplementaryError = false;
++  // Mensajes de pam_fprintd (texto libre): se detectan por palabras clave.
++  bool supplementaryFingerprint = false;
++  bool sawFingerprint = false;
++  bool fingerprintSuccess = false;
++  Timer successTimer;
++
++  static bool isFingerprintMessage(const std::string& text) {
++    std::string lower = text;
++    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return std::tolower(c); });
++    for (const char* keyword : {"finger", "swipe", "reader", "sensor"}) {
++      if (lower.find(keyword) != std::string::npos) {
++        return true;
++      }
++    }
++    return false;
++  }
+ 
+   mutable std::vector<GPollFD> glibPollFds;
+   mutable gint glibMaxPriority = G_PRIORITY_DEFAULT;
+@@ -484,6 +502,10 @@
+     inputPrompt.clear();
+     supplementaryMessage.clear();
+     supplementaryError = false;
++    supplementaryFingerprint = false;
++    sawFingerprint = false;
++    fingerprintSuccess = false;
++    successTimer.stop();
+   }
+ 
+   void stopSession() {
+@@ -589,6 +611,23 @@
+   void setSupplementary(const std::string& text, bool isError) {
+     supplementaryMessage = text;
+     supplementaryError = isError;
++    supplementaryFingerprint = isFingerprintMessage(text);
++    sawFingerprint = sawFingerprint || supplementaryFingerprint;
++    emitStateChanged();
++  }
++
++  void finishAuthorized() {
++    if (pending == nullptr) {
++      return;
++    }
++    kLog.info(
++        "polkit action \"{}\" authorized as {}", pending->actionId,
++        activeIdentity != nullptr ? identityDisplayName(activeIdentity) : std::string("unknown")
++    );
++    pending->complete();
++    pending.reset();
++    stopSession();
++    clearConversationState();
+     emitStateChanged();
+   }
+ 
+@@ -598,15 +637,16 @@
+     }
+ 
+     if (gainedAuthorization) {
+-      kLog.info(
+-          "polkit action \"{}\" authorized as {}", pending->actionId,
+-          activeIdentity != nullptr ? identityDisplayName(activeIdentity) : std::string("unknown")
+-      );
+-      pending->complete();
+-      pending.reset();
+-      stopSession();
+-      clearConversationState();
+-      emitStateChanged();
++      // Con huella, mantenemos el icono verde un instante antes de cerrar.
++      if (sawFingerprint) {
++        fingerprintSuccess = true;
++        supplementaryFingerprint = true;
++        supplementaryError = false;
++        emitStateChanged();
++        successTimer.start(std::chrono::milliseconds(700), [this]() { finishAuthorized(); });
++        return;
++      }
++      finishAuthorized();
+       return;
+     }
+ 
+@@ -815,3 +855,16 @@
+ }
+ 
+ bool PolkitAgent::supplementaryIsError() const noexcept { return m_impl != nullptr && m_impl->supplementaryError; }
++
++FingerprintState PolkitAgent::fingerprintState() const {
++  if (m_impl == nullptr || !m_impl->sawFingerprint) {
++    return FingerprintState::Hidden;
++  }
++  if (m_impl->fingerprintSuccess) {
++    return FingerprintState::Success;
++  }
++  if (m_impl->supplementaryFingerprint && m_impl->supplementaryError) {
++    return FingerprintState::Error;
++  }
++  return FingerprintState::Scanning;
++}
+--- a/src/dbus/polkit/polkit_agent.h
++++ b/src/dbus/polkit/polkit_agent.h
+@@ -1,5 +1,7 @@
+ #pragma once
+ 
++#include "shell/lockscreen/fingerprint_state.h"
++
+ #include <cstdint>
+ #include <functional>
+ #include <memory>
+@@ -57,6 +59,7 @@
+   [[nodiscard]] std::string inputPrompt() const;
+   [[nodiscard]] std::string supplementaryMessage() const;
+   [[nodiscard]] bool supplementaryIsError() const noexcept;
++  [[nodiscard]] FingerprintState fingerprintState() const;
+ 
+ private:
+   struct Impl;
+--- a/src/shell/polkit/polkit_panel.cpp
++++ b/src/shell/polkit/polkit_panel.cpp
+@@ -397,7 +397,30 @@
+   }
+   m_lastResponseRequired = needsInput;
+ 
+-  if (request.iconName != m_lastIconName || !m_iconResolved) {
++  // Con huella, el escudo se sustituye por el icono de huella (verde, rojo o gris según el estado).
++  const FingerprintState fingerprint = agent->fingerprintState();
++  if (fingerprint != FingerprintState::Hidden) {
++    ColorSpec fingerprintColor = colorSpecFromRole(ColorRole::OnSurfaceVariant);
++    if (fingerprint == FingerprintState::Error) {
++      fingerprintColor = colorSpecFromRole(ColorRole::Error);
++    } else if (fingerprint == FingerprintState::Success) {
++      fingerprintColor = fixedColorSpec(rgba(0.298F, 0.686F, 0.314F, 1.0F));
++    }
++    m_fallbackIcon->setGlyph("fingerprint");
++    m_fallbackIcon->setColor(fingerprintColor);
++    m_fallbackIcon->setVisible(true);
++    m_icon->setVisible(false);
++    m_showingFingerprint = true;
++  } else if (m_showingFingerprint) {
++    // Vuelve al icono de la app (o al escudo) en cuanto desaparece la huella.
++    m_showingFingerprint = false;
++    m_fallbackIcon->setGlyph("shield-lock");
++    m_fallbackIcon->setColor(colorSpecFromRole(ColorRole::OnSurfaceVariant));
++    m_iconResolved = false;
++  }
++
++  if (fingerprint == FingerprintState::Hidden
++      && (request.iconName != m_lastIconName || !m_iconResolved)) {
+     m_lastIconName = request.iconName;
+     m_iconResolved = true;
+     resolveIcon(renderer, request);
+--- a/src/shell/polkit/polkit_panel.h
++++ b/src/shell/polkit/polkit_panel.h
+@@ -62,6 +62,7 @@
+   IconResolver m_iconResolver;
+   std::string m_lastIconName;
+   bool m_iconResolved = false;
++  bool m_showingFingerprint = false;
+   bool m_lastResponseRequired = false;
+   std::string m_trackedRequestCookie;
+   bool m_hasTrackedRequest = false;
+--- /dev/null
++++ b/src/shell/lockscreen/fingerprint_state.h
+@@ -0,0 +1,11 @@
++#pragma once
++
++#include <cstdint>
++
++// Estado del icono de huella en la pantalla de bloqueo y en el popup de polkit.
++enum class FingerprintState : std::uint8_t {
++  Hidden,
++  Scanning,
++  Error,
++  Success,
++};
