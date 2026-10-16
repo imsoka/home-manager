@@ -89,7 +89,8 @@ local function launch()
   setState({ busy = true, needOtp = false, message = "Autentica para conectar…" })
   noctalia.runAsync({ "pkexec", WRAPPER, "start" }, function(r)
     if r.exitCode ~= 0 then
-      return fail("Conexión cancelada o fallida")
+      local err = (r.stderr or ""):gsub("%s+$", ""):match("([^\n]*)$") or ""
+      return fail(err ~= "" and err or "Conexión cancelada o fallida")
     end
     setState({ busy = true, message = "Conectando…" })
   end)
