@@ -53,7 +53,8 @@ binds {
     Mod+Comma  { consume-window-into-column; }
     Mod+Period { expel-window-from-column; }
 
-    Mod+F { maximize-column; }
+    Mod+M { maximize-column; }
+    Mod+F { fullscreen-window; }
     Mod+Shift+F { fullscreen-window; }
     Mod+Space { toggle-window-floating; }
 
