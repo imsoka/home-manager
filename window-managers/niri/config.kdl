@@ -18,8 +18,16 @@ input {
 layout {
     gaps 8
 
+    // Solo un borde de 1 px en la ventana enfocada; el focus-ring por defecto
+    // (4 px) se sumaba al borde y quedaba muy grueso
+    focus-ring {
+        off
+    }
+
     border {
-        width 2
+        width 1
+        active-color "#8aadf4cc"
+        inactive-color "#00000000"
     }
 }
 
