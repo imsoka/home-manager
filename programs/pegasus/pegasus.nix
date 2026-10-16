@@ -44,6 +44,20 @@ let
     '' + builtins.readFile ./steam-install.sh;
   };
 
+  # Desinstala desde Pegasus: el tema deja la petición en
+  # uninstallDir/queue y la unidad .path de abajo la atiende
+  uninstallDir = "${config.xdg.stateHome}/pegasus-uninstall";
+  pegasusUninstall = pkgs.writeShellApplication {
+    name = "pegasus-uninstall";
+    runtimeInputs = with pkgs; [
+      legendary-gl nile jq libnotify procps systemd coreutils gnugrep gnused
+      util-linux
+    ];
+    text = ''
+      steam_cmd=${config.home.profileDirectory}/bin/steam
+    '' + builtins.readFile ./pegasus-uninstall.sh;
+  };
+
   pegasusLibrary = pkgs.writers.writePython3Bin "pegasus-library" {
     libraries = [ pkgs.python3Packages.vdf ];
   } (builtins.readFile ./pegasus-library.py);
@@ -64,11 +78,20 @@ let
   ];
 
   # Tema: pensado para mando (https://github.com/ilyasturki/pegasus-theme-reprise)
-  reprise = pkgs.fetchFromGitHub {
-    owner = "ilyasturki";
-    repo = "pegasus-theme-reprise";
-    rev = "d9810b74b1c52a3d7614b46eb7f534f957a992c6";
-    hash = "sha256-Xu0/lbP6T+TwljVQ6cysDBydeD4Fkl3KFj4ndfRt+MI=";
+  # Parcheado: X en los detalles de un juego lo desinstala
+  # (core/Uninstall.qml)
+  reprise = pkgs.applyPatches {
+    name = "pegasus-theme-reprise";
+    src = pkgs.fetchFromGitHub {
+      owner = "ilyasturki";
+      repo = "pegasus-theme-reprise";
+      rev = "d9810b74b1c52a3d7614b46eb7f534f957a992c6";
+      hash = "sha256-Xu0/lbP6T+TwljVQ6cysDBydeD4Fkl3KFj4ndfRt+MI=";
+    };
+    patches = [ ./reprise-uninstall.patch ];
+    postPatch = ''
+      substituteInPlace core/Uninstall.qml --subst-var-by stateDir ${uninstallDir}
+    '';
   };
 
   # Ajustes que se fuerzan en settings.txt de Pegasus. Los lectores nativos
@@ -89,6 +112,7 @@ let
 in {
   home.packages = [
     pkgs.heroic heroicInstall steamInstall pegasusLibrary pegasusWrapper
+    pegasusUninstall
   ];
 
   xdg.configFile."pegasus-frontend/themes/reprise".source = reprise;
@@ -132,6 +156,27 @@ in {
       ];
     };
   };
+
+  systemd.user.services.pegasus-uninstall = {
+    Unit.Description = "Desinstala los juegos que se piden desde Pegasus";
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${pegasusUninstall}/bin/pegasus-uninstall --queue";
+    };
+  };
+
+  # Pegasus solo escribe (PUT de XMLHttpRequest) en directorios que existan
+  systemd.user.paths.pegasus-uninstall = {
+    Unit.Description = "Atiende las desinstalaciones pedidas desde Pegasus";
+    Path = {
+      DirectoryNotEmpty = "${uninstallDir}/queue";
+      MakeDirectory = true;
+    };
+    Install.WantedBy = [ "default.target" ];
+  };
+  home.activation.pegasusUninstallDirs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    run mkdir -p "${uninstallDir}/queue" "${uninstallDir}/status"
+  '';
 
   # Heroic y Steam escriben varios archivos seguidos: tras un cambio se
   # espera a que terminen antes de regenerar. El wrapper de pegasus-fe espera

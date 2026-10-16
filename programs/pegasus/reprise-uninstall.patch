@@ -1,0 +1,280 @@
+diff --git a/core/Uninstall.qml b/core/Uninstall.qml
+new file mode 100644
+index 0000000..3360077
+--- /dev/null
++++ b/core/Uninstall.qml
+@@ -0,0 +1,93 @@
++pragma Singleton
++import QtQuick 2.15
++
++// Uninstalling from the detail page. A theme cannot run commands, so the
++// request is a file that a systemd .path unit hands to pegasus-uninstall,
++// which leaves the outcome in a status file polled from here. A singleton, so
++// an uninstall keeps being followed after its detail page unloads.
++QtObject {
++    id: root
++
++    readonly property string stateDir: "@stateDir@"
++
++    // key -> "running" | "ok" | "error", for as long as Pegasus stays up:
++    // its game list only catches up on the next start.
++    property var states: ({})
++
++    // pegasus-library sets x-uninstall on the installed games it can remove.
++    function key(game) {
++        if (!game || game.extra["uninstall"] === undefined
++                || game.extra["source"] === undefined || game.extra["id"] === undefined)
++            return "";
++        return game.extra["source"][0] + "-"
++            + String(game.extra["id"][0]).replace(/[^A-Za-z0-9._-]/g, "_");
++    }
++
++    function stateOf(game) {
++        var k = key(game);
++        return k !== "" && states[k] !== undefined ? states[k] : "";
++    }
++
++    function available(game) {
++        var s = stateOf(game);
++        return key(game) !== "" && (s === "" || s === "error");
++    }
++
++    function setState(k, s) {
++        var next = Object.assign({}, states);
++        next[k] = s;
++        states = next;
++    }
++
++    function put(url, body, done) {
++        var xhr = new XMLHttpRequest();
++        xhr.onreadystatechange = function() {
++            if (xhr.readyState === XMLHttpRequest.DONE && done)
++                done();
++        };
++        xhr.open("PUT", url);
++        xhr.send(body);
++    }
++
++    function request(game) {
++        var k = key(game);
++        if (k === "")
++            return;
++        setState(k, "running");
++        var base = "file://" + stateDir;
++        // A status left by an earlier try would read as this one's outcome.
++        put(base + "/status/" + k, "", function() {
++            put(base + "/queue/" + k, game.extra["source"][0] + "\n" + game.extra["id"][0] + "\n");
++        });
++        poll.start();
++    }
++
++    readonly property Timer poll: Timer {
++        interval: 1000
++        repeat: true
++        onTriggered: {
++            var pending = false;
++            for (var k in root.states) {
++                if (root.states[k] !== "running")
++                    continue;
++                pending = true;
++                root.check(k);
++            }
++            if (!pending)
++                stop();
++        }
++    }
++
++    function check(k) {
++        var xhr = new XMLHttpRequest();
++        xhr.onreadystatechange = function() {
++            if (xhr.readyState !== XMLHttpRequest.DONE)
++                return;
++            var s = xhr.responseText.trim();
++            if (s === "ok" || s === "error")
++                root.setState(k, s);
++        };
++        xhr.open("GET", "file://" + stateDir + "/status/" + k);
++        xhr.send();
++    }
++}
+diff --git a/core/qmldir b/core/qmldir
+index d57fb86..762795e 100644
+--- a/core/qmldir
++++ b/core/qmldir
+@@ -1 +1,2 @@
+ singleton Theme 1.0 Theme.qml
++singleton Uninstall 1.0 Uninstall.qml
+diff --git a/pages/DetailPage.qml b/pages/DetailPage.qml
+index 323058f..099503f 100644
+--- a/pages/DetailPage.qml
++++ b/pages/DetailPage.qml
+@@ -55,16 +55,27 @@ FocusScope {
+     readonly property bool hasAbout: description !== "" || facts.length > 0
+     readonly property bool hasShots: screenshots.length > 0
+ 
+-    readonly property var hints: lightbox
++    readonly property var hints: confirmingUninstall
++        ? [ { glyph: "A", label: "Uninstall" }, { glyph: "B", label: "Cancel" } ]
++        : lightbox
+         ? [ { glyph: "dpad", label: "Previous / next" }, { glyph: "B", label: "Close" } ]
+-        : section === 2
++        : (section === 2
+         ? [ { glyph: "A", label: "View" }, { glyph: "Y", label: favouriteLabel }, { glyph: "dpad", label: "Navigate" }, { glyph: "B", label: "Back" } ]
+         : section === 1
+         ? [ { glyph: "A", label: "Play" }, { glyph: "dpad", label: "Scroll" }, { glyph: "Y", label: favouriteLabel }, { glyph: "B", label: "Back" } ]
+-        : [ { glyph: "A", label: actionIndex === 0 ? "Play" : favouriteLabel }, { glyph: "Y", label: favouriteLabel }, { glyph: "dpad", label: "Navigate" }, { glyph: "B", label: "Back" } ]
++        : [ { glyph: "A", label: actionIndex === 0 ? "Play" : favouriteLabel }, { glyph: "Y", label: favouriteLabel }, { glyph: "dpad", label: "Navigate" }, { glyph: "B", label: "Back" } ])
++          .concat(canUninstall ? [ { glyph: "X", label: "Uninstall" } ] : [])
+ 
+     readonly property string favouriteLabel: game && game.favorite ? "Remove from favourites" : "Add to favourites"
+ 
++    property bool confirmingUninstall: false
++    readonly property bool canUninstall: Uninstall.available(game)
++    readonly property string uninstallState: Uninstall.stateOf(game)
++    readonly property string uninstallLabel: uninstallState === "running" ? "Uninstalling…"
++        : uninstallState === "ok" ? "Uninstalled"
++        : uninstallState === "error" ? "Uninstall failed"
++        : ""
++
+     onGameChanged: reset()
+ 
+     function reset() {
+@@ -72,6 +83,7 @@ FocusScope {
+         actionIndex = 0;
+         shotIndex = 0;
+         lightbox = false;
++        confirmingUninstall = false;
+         flick.contentY = 0;
+     }
+ 
+@@ -227,6 +239,26 @@ FocusScope {
+                             }
+                         }
+                     }
++
++                    Rectangle {
++                        visible: page.uninstallLabel !== ""
++                        height: Theme.dp(41)
++                        width: uninstallText.width + Theme.dp(40)
++                        radius: height / 2
++                        color: page.uninstallState === "error" ? Qt.rgba(1, 0.29, 0.29, 0.22) : Qt.rgba(1, 1, 1, 0.10)
++                        border.width: 1
++                        border.color: Theme.surfaceBorder
++
++                        Text {
++                            id: uninstallText
++                            anchors.centerIn: parent
++                            text: page.uninstallLabel
++                            color: Theme.text
++                            font.family: Theme.sans
++                            font.weight: Font.Medium
++                            font.pixelSize: Theme.dp(20)
++                        }
++                    }
+                 }
+ 
+                 HeroLogo {
+@@ -598,7 +630,86 @@ FocusScope {
+         }
+     }
+ 
++    Item {
++        id: uninstallDialog
++
++        anchors.fill: parent
++        opacity: page.confirmingUninstall ? 1.0 : 0.0
++        visible: opacity > 0.01
++
++        Behavior on opacity {
++            NumberAnimation { duration: Theme.durBase; easing.type: Easing.OutCubic }
++        }
++
++        Rectangle {
++            anchors.fill: parent
++            anchors.bottomMargin: hintBar.height
++            color: Qt.rgba(0.02, 0.02, 0.03, 0.62)
++        }
++
++        Rectangle {
++            anchors.centerIn: parent
++            width: Theme.dp(760)
++            height: dialogText.height + Theme.dp(88)
++            radius: Theme.dp(24)
++            color: "#1b1d24"
++            border.width: 1
++            border.color: Theme.surfaceBorder
++            scale: page.confirmingUninstall ? 1.0 : 0.96
++
++            Behavior on scale {
++                NumberAnimation { duration: Theme.durBase; easing.type: Easing.OutCubic }
++            }
++
++            Column {
++                id: dialogText
++
++                anchors.centerIn: parent
++                width: parent.width - Theme.dp(88)
++                spacing: Theme.dp(16)
++
++                Text {
++                    width: parent.width
++                    text: "Uninstall " + (page.game ? page.game.title : "") + "?"
++                    color: Theme.text
++                    font.family: Theme.sans
++                    font.weight: Font.DemiBold
++                    font.pixelSize: Theme.dp(32)
++                    wrapMode: Text.WordWrap
++                }
++
++                Text {
++                    width: parent.width
++                    text: "Its files are deleted. Saves in its Proton or Wine prefix are kept."
++                    color: Theme.textSecondary
++                    font.family: Theme.sans
++                    font.pixelSize: Theme.dp(23)
++                    lineHeight: 1.4
++                    wrapMode: Text.WordWrap
++                }
++            }
++        }
++    }
++
+     Keys.onPressed: {
++        if (page.confirmingUninstall) {
++            // Menu key must reach Pegasus's own main menu.
++            if (api.keys.isMenu(event))
++                return;
++            event.accepted = true;
++            if (event.isAutoRepeat)
++                return;
++            if (api.keys.isAccept(event)) {
++                Sound.enter();
++                Uninstall.request(page.game);
++                page.confirmingUninstall = false;
++            } else if (api.keys.isCancel(event)) {
++                Sound.cancel();
++                page.confirmingUninstall = false;
++            }
++            return;
++        }
++
+         if (event.isAutoRepeat && !(event.key === Qt.Key_Up || event.key === Qt.Key_Down
+                                     || event.key === Qt.Key_Left || event.key === Qt.Key_Right))
+             return;
+@@ -639,6 +750,16 @@ FocusScope {
+             page.closeRequested();
+             return;
+         }
++        if (api.keys.isDetails(event)) {
++            event.accepted = true;
++            if (page.canUninstall) {
++                Sound.panel();
++                page.confirmingUninstall = true;
++            } else {
++                Sound.edge();
++            }
++            return;
++        }
+         if (event.key === Qt.Key_Down) {
+             event.accepted = true;
+             page.stepSound(page.stepDown());

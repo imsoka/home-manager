@@ -42,6 +42,9 @@ STEAM_INSTALL_CMD = os.environ.get("PEGASUS_LIBRARY_STEAM_INSTALL",
                                    "steam-install")
 # Tiendas que heroic-install sabe instalar sin la ventana de Heroic
 UNATTENDED = {"legendary", "nile"}
+# Tiendas que pegasus-uninstall sabe desinstalar (los juegos añadidos a mano
+# en Heroic no: no se sabe qué borrar)
+UNINSTALLABLE = {"steam", "legendary", "nile", "gog", "zoom"}
 
 STEAM_CDN = "https://shared.akamai.steamstatic.com/store_item_assets/"
 STEAM_STORE_TTL = 7 * 24 * 3600
@@ -452,6 +455,9 @@ def write_collection(name, shortname, sort_key, games, path):
             lines.append(f"assets.{asset}: {file}")
         lines.append(f"x-source: {g.source}")
         lines.append(f"x-id: {g.id}")
+        # El tema enseña "Desinstalar" (X) en los detalles
+        if g.installed and g.source in UNINSTALLABLE:
+            lines.append("x-uninstall: yes")
         lines.append("")
     path.mkdir(parents=True, exist_ok=True)
     tmp = path / "metadata.pegasus.txt.tmp"
