@@ -76,7 +76,9 @@ HEROIC_STORES = {
 COLLECTION_ORDER = ["Steam", "Epic", "GOG", "Amazon", "Zoom", "Otros"]
 # shortname de la colección: el tema Reprise pone el icono
 # assets/platforms/<shortname>.svg; sin icono muestra el nombre
-SHORTNAMES = {"Steam": "steam"}
+SHORTNAMES = {
+    "Steam": "steam", "Epic": "epic", "GOG": "gog", "Amazon": "amazon",
+}
 
 
 @dataclass

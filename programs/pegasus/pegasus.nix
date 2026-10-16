@@ -80,7 +80,9 @@ let
   # Tema: pensado para mando (https://github.com/ilyasturki/pegasus-theme-reprise)
   # Parcheado: X en los detalles de un juego lo desinstala
   # (core/Uninstall.qml) y A dice "Install" en los no instalados
-  # (core/Launch.qml)
+  # (core/Launch.qml) y las carátulas llevan el logo de la tienda en la
+  # esquina superior izquierda (ui/CoverCard.qml; logos de Epic, GOG y Amazon
+  # de Simple Icons, como los del tema)
   reprise = pkgs.applyPatches {
     name = "pegasus-theme-reprise";
     src = pkgs.fetchFromGitHub {
@@ -89,7 +91,8 @@ let
       rev = "d9810b74b1c52a3d7614b46eb7f534f957a992c6";
       hash = "sha256-Xu0/lbP6T+TwljVQ6cysDBydeD4Fkl3KFj4ndfRt+MI=";
     };
-    patches = [ ./reprise-uninstall.patch ./reprise-install-label.patch ];
+    patches = [ ./reprise-uninstall.patch ./reprise-install-label.patch
+      ./reprise-platform-badge.patch ];
     postPatch = ''
       substituteInPlace core/Uninstall.qml --subst-var-by stateDir ${uninstallDir}
     '';
