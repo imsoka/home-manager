@@ -65,6 +65,12 @@ window-rule {
     open-maximized true
 }
 
+// La lista de amigos de Steam flota
+window-rule {
+    match app-id=r#"^steam$"# title=r#"^(Lista de amigos|Friends List)$"#
+    open-floating true
+}
+
 binds {
     Mod+Return { spawn "alacritty"; }
     Mod+D { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
