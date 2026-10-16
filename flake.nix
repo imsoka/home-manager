@@ -42,6 +42,7 @@
           ./programs/noctalia/gaming.nix
           ./programs/steam/steam.nix
           ./programs/discord/discord.nix
+          ./programs/pegasus/pegasus.nix
           ./programs/noctalia/wallpaper.nix
         ];
       };
