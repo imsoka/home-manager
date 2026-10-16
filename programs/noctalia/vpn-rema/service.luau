@@ -57,31 +57,39 @@ local function readLog()
   local text = noctalia.readFile(LOG) or ""
   if text:find("Could not authenticate", 1, true) then
     return "rejected"
-  elseif text:find("[Tt]oken") or text:find("[Oo]ne.?[Tt]ime") or text:find("OTP") then
+  elseif text:find("Tunnel is up", 1, true) then
+    return "up"
+  elseif text:find("[Tt]oken:") or text:find("[Oo]ne.?[Tt]ime") then
     return "otp"
   end
   return nil
 end
 
+-- La VPN solo cuenta como conectada con el túnel levantado. El proceso por sí solo
+-- aparece también mientras openfortivpn espera el 2FA.
 local function refreshConnected()
   noctalia.processMatches(function(matched)
-    local s = noctalia.state.get(STATE) or {}
-    if matched ~= s.connected then
-      setState({ connected = matched })
+    local phase = attempting and readLog() or nil
+
+    if phase == "rejected" then
+      return fail("Contraseña o usuario rechazados (escríbela de nuevo, sin pegar)")
     end
-    if matched then
-      attempting = false
-      setState({ needOtp = false, busy = false, message = "Conectada" })
-    elseif attempting then
-      if os.time() - launchedAt > 150 then
+
+    if not matched then
+      if attempting and os.time() - launchedAt > 150 then
         return fail("Sin respuesta de openfortivpn (mira /run/vpn-rema.log)")
       end
-      local phase = readLog()
-      if phase == "rejected" then
-        fail("Contraseña o usuario rechazados (mira el keyring o escribe la contraseña)")
-      elseif phase == "otp" then
-        setState({ needOtp = true, message = "Introduce el código 2FA del email" })
-      end
+      setState({ connected = false, needOtp = false })
+      return
+    end
+
+    if phase == "up" or (not attempting) then
+      attempting = false
+      setState({ connected = true, needOtp = false, busy = false, message = "Conectada" })
+    elseif phase == "otp" then
+      setState({ connected = false, needOtp = true, busy = false, message = "Introduce el código 2FA del email" })
+    elseif attempting and os.time() - launchedAt > 150 then
+      fail("Sin respuesta de openfortivpn (mira /run/vpn-rema.log)")
     end
   end, "openfortivpn")
 end
