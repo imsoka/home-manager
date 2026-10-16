@@ -83,11 +83,11 @@ local function refreshConnected()
   end, "openfortivpn")
 end
 
-local function launch()
+local function launch(user)
   attempting = true
   launchedAt = os.time()
   setState({ busy = true, needOtp = false, message = "Autentica para conectar…" })
-  noctalia.runAsync({ "pkexec", WRAPPER, "start" }, function(r)
+  noctalia.runAsync({ "pkexec", WRAPPER, "start", user }, function(r)
     if r.exitCode ~= 0 then
       local err = (r.stderr or ""):gsub("%s+$", ""):match("([^\n]*)$") or ""
       return fail(err ~= "" and err or "Conexión cancelada o fallida")
@@ -103,22 +103,19 @@ local function connect(user, password, save)
   end
 
   local function withPassword(pw)
-    writeSecret("user", user, function(okUser)
-      if not okUser then return fail("No se pudo preparar el usuario") end
-      writeSecret("pass", pw, function(ok)
-        if not ok then return fail("No se pudo preparar la contraseña") end
-        if save then
-          -- secret-tool lee el secreto de stdin: se pasa el fichero, nunca como argumento
-          noctalia.runAsync({ "sh", "-c", 'secret-tool store --label="VPN rema" service ' .. SERVICE
-            .. ' account "$2" < "$1"', "sh", runtimeDir() .. "/pass", user }, function(r)
-            if r.exitCode ~= 0 then return fail("No se pudo guardar en el keyring") end
-            setState({ saved = true })
-            launch()
-          end)
-        else
-          launch()
-        end
-      end)
+    writeSecret("pass", pw, function(ok)
+      if not ok then return fail("No se pudo preparar la contraseña") end
+      if save then
+        -- secret-tool lee el secreto de stdin: se pasa el fichero, nunca como argumento
+        noctalia.runAsync({ "sh", "-c", 'secret-tool store --label="VPN rema" service ' .. SERVICE
+          .. ' account "$2" < "$1"', "sh", runtimeDir() .. "/pass", user }, function(r)
+          if r.exitCode ~= 0 then return fail("No se pudo guardar en el keyring") end
+          setState({ saved = true })
+          launch(user)
+        end)
+      else
+        launch(user)
+      end
     end)
   end
 
