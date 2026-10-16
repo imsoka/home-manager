@@ -1,11 +1,15 @@
 --!nonstrict
 -- Servicio: estado de la VPN, keyring (secret-tool) y llamadas a vpn-rema-up vía pkexec.
--- Los comandos llegan del panel por el estado CMD; el estado publicado es STATE.
+-- Los comandos llegan del panel por CMD; el estado publicado es STATE.
 
 local CMD = "vpn.command"
 local STATE = "vpn.state"
 local WRAPPER = "/run/current-system/sw/bin/vpn-rema-up"
+local LOG = "/run/vpn-rema.log"
 local SERVICE = "vpn-rema"
+
+local attempting = false
+local launchedAt = 0
 
 local function setState(patch)
   local s = noctalia.state.get(STATE) or {}
@@ -17,11 +21,11 @@ local function runtimeDir()
   return (noctalia.getenv("XDG_RUNTIME_DIR") or "/run/user/1000") .. "/vpn-rema"
 end
 
-local function account()
-  return tostring(noctalia.getConfig("account") or "rema")
+local function validUser(u)
+  return u ~= nil and u:match("^[%w._@-]+$") ~= nil
 end
 
--- Escribe un secreto en un fichero temporal de /run/user (solo lo lee el wrapper).
+-- Escribe un valor en un fichero temporal de /run/user (solo lo lee el wrapper).
 local function writeSecret(name, value, cb)
   local dir = runtimeDir()
   noctalia.runAsync({ "mkdir", "-p", "-m", "700", dir }, function()
@@ -33,10 +37,30 @@ local function writeSecret(name, value, cb)
   end)
 end
 
-local function refreshSaved()
-  noctalia.runAsync({ "secret-tool", "lookup", "service", SERVICE, "account", account() }, function(r)
+local function refreshSaved(user)
+  noctalia.runAsync({ "secret-tool", "lookup", "service", SERVICE, "account", user }, function(r)
     setState({ saved = r.exitCode == 0 and r.stdout ~= "" })
   end)
+end
+
+local function fail(msg)
+  attempting = false
+  noctalia.removeFile(runtimeDir() .. "/pass")
+  setState({ busy = false, needOtp = false, message = msg })
+end
+
+-- Lee el log del wrapper y deduce en qué punto está openfortivpn.
+-- Solo se lee si el log es de este intento (el wrapper lo sobrescribe al arrancar).
+local function readLog()
+  local info = noctalia.fileInfo(LOG)
+  if not info or info.mtime < launchedAt then return nil end
+  local text = noctalia.readFile(LOG) or ""
+  if text:find("Could not authenticate", 1, true) then
+    return "rejected"
+  elseif text:find("[Tt]oken") or text:find("[Oo]ne.?[Tt]ime") or text:find("OTP") then
+    return "otp"
+  end
+  return nil
 end
 
 local function refreshConnected()
@@ -45,51 +69,66 @@ local function refreshConnected()
     if matched ~= s.connected then
       setState({ connected = matched })
     end
+    if matched then
+      attempting = false
+      setState({ needOtp = false, busy = false, message = "Conectada" })
+    elseif attempting then
+      local phase = readLog()
+      if phase == "rejected" then
+        fail("Contraseña o usuario rechazados (mira el keyring o escribe la contraseña)")
+      elseif phase == "otp" then
+        setState({ needOtp = true, message = "Introduce el código 2FA del email" })
+      end
+    end
   end, "openfortivpn")
 end
 
-local function fail(msg)
-  noctalia.removeFile(runtimeDir() .. "/pass")
-  setState({ busy = false, needOtp = false, message = msg })
-end
-
 local function launch()
-  setState({ busy = true, message = "Autentica para conectar…" })
+  attempting = true
+  launchedAt = os.time()
+  setState({ busy = true, needOtp = false, message = "Autentica para conectar…" })
   noctalia.runAsync({ "pkexec", WRAPPER, "start" }, function(r)
     if r.exitCode ~= 0 then
       return fail("Conexión cancelada o fallida")
     end
-    setState({ busy = false, needOtp = true, message = "Introduce el código 2FA del email" })
+    setState({ busy = true, message = "Conectando…" })
   end)
 end
 
--- Guarda la contraseña en el keyring y después lanza el wrapper.
-local function connect(password, save)
+-- Envía el usuario, guarda la contraseña en el keyring si toca y lanza el wrapper.
+local function connect(user, password, save)
+  if not validUser(user) then
+    return fail("Usuario no válido")
+  end
+
   local function withPassword(pw)
-    writeSecret("pass", pw, function(ok)
-      if not ok then return fail("No se pudo preparar la contraseña") end
-      if save then
-        -- secret-tool lee el secreto de stdin: se pasa el fichero, nunca como argumento
-        noctalia.runAsync({ "sh", "-c", 'secret-tool store --label="VPN rema" service ' .. SERVICE
-          .. ' account "$2" < "$1"', "sh", runtimeDir() .. "/pass", account() }, function(r)
-          if r.exitCode ~= 0 then return fail("No se pudo guardar en el keyring") end
-          setState({ saved = true })
+    writeSecret("user", user, function(okUser)
+      if not okUser then return fail("No se pudo preparar el usuario") end
+      writeSecret("pass", pw, function(ok)
+        if not ok then return fail("No se pudo preparar la contraseña") end
+        if save then
+          -- secret-tool lee el secreto de stdin: se pasa el fichero, nunca como argumento
+          noctalia.runAsync({ "sh", "-c", 'secret-tool store --label="VPN rema" service ' .. SERVICE
+            .. ' account "$2" < "$1"', "sh", runtimeDir() .. "/pass", user }, function(r)
+            if r.exitCode ~= 0 then return fail("No se pudo guardar en el keyring") end
+            setState({ saved = true })
+            launch()
+          end)
+        else
           launch()
-        end)
-      else
-        launch()
-      end
+        end
+      end)
     end)
   end
 
   if password and password ~= "" then
     withPassword(password)
   else
-    noctalia.runAsync({ "secret-tool", "lookup", "service", SERVICE, "account", account() }, function(r)
+    noctalia.runAsync({ "secret-tool", "lookup", "service", SERVICE, "account", user }, function(r)
       if r.exitCode == 0 and r.stdout ~= "" then
         withPassword(r.stdout)
       else
-        fail("Falta la contraseña (no hay ninguna guardada)")
+        fail("No hay contraseña guardada para " .. user)
       end
     end)
   end
@@ -103,6 +142,7 @@ local function sendOtp(code)
 end
 
 local function disconnect()
+  attempting = false
   setState({ busy = true, message = "Desconectando…" })
   noctalia.runAsync({ "pkexec", WRAPPER, "stop" }, function(r)
     setState({ busy = false, message = r.exitCode == 0 and "Desconectada" or "No se pudo desconectar" })
@@ -110,18 +150,19 @@ local function disconnect()
   end)
 end
 
-local function forget()
-  noctalia.runAsync({ "secret-tool", "clear", "service", SERVICE, "account", account() }, function()
+local function forget(user)
+  noctalia.runAsync({ "secret-tool", "clear", "service", SERVICE, "account", user }, function()
     setState({ saved = false, message = "Contraseña eliminada del keyring" })
   end)
 end
 
 noctalia.state.watch(CMD, function(cmd)
   if not cmd or not cmd.id then return end
-  if cmd.action == "connect" then connect(cmd.password, cmd.save)
+  if cmd.action == "connect" then connect(cmd.user, cmd.password, cmd.save)
   elseif cmd.action == "otp" then sendOtp(cmd.otp)
   elseif cmd.action == "disconnect" then disconnect()
-  elseif cmd.action == "forget" then forget()
+  elseif cmd.action == "forget" then forget(cmd.user)
+  elseif cmd.action == "check" then refreshSaved(cmd.user)
   end
 end)
 
@@ -129,6 +170,6 @@ function update()
   refreshConnected()
 end
 
-noctalia.setUpdateInterval(5000)
-refreshSaved()
+noctalia.setUpdateInterval(3000)
+setState({ user = tostring(noctalia.getConfig("vpn_user") or "ogi-varaque") })
 refreshConnected()

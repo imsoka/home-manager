@@ -1,10 +1,11 @@
 --!nonstrict
--- Panel: contraseña (opcional si ya está en el keyring), 2FA y botones de conectar/desconectar.
+-- Panel: usuario, contraseña (opcional si ya está en el keyring), 2FA y botones de conectar/desconectar.
 
 local STATE = "vpn.state"
 local CMD = "vpn.command"
 
 local s = noctalia.state.get(STATE) or {}
+local user = s.user or tostring(noctalia.getConfig("vpn_user") or "ogi-varaque")
 local password = ""
 local otp = ""
 local save = true
@@ -18,12 +19,17 @@ local function dispatch(action, extra)
   password = ""
 end
 
+local function connectNow()
+  dispatch("connect", { user = user, password = password, save = save })
+end
+
 local function render()
   s = noctalia.state.get(STATE) or s
   local children = {}
 
   children[#children + 1] = ui.label({
-    text = s.connected and (s.needOtp and "Esperando código 2FA" or "Conectada") or "Desconectada",
+    text = s.connected and (s.needOtp and "Esperando código 2FA" or "Conectada")
+      or (s.busy and "Conectando…" or "Desconectada"),
     fontSize = 14,
     fontWeight = "bold",
     color = s.connected and "primary" or "on_surface_variant",
@@ -33,13 +39,19 @@ local function render()
     children[#children + 1] = ui.label({ text = s.message, fontSize = 11, color = "on_surface_variant" })
   end
 
-  if not s.connected and not s.busy then
+  if not s.connected and not s.busy and not s.needOtp then
+    children[#children + 1] = ui.input({
+      value = user,
+      placeholder = "Usuario VPN",
+      onChange = function(text) user = text end,
+      onSubmit = function() dispatch("check", { user = user }) end,
+    })
     children[#children + 1] = ui.input({
       value = password,
       password = true,
       placeholder = s.saved and "Contraseña (guardada en el keyring)" or "Contraseña VPN",
       onChange = function(text) password = text end,
-      onSubmit = function() dispatch("connect", { password = password, save = save }) end,
+      onSubmit = connectNow,
     })
     children[#children + 1] = ui.row({ gap = 8, align = "center" }, {
       ui.toggle({ checked = save, onChange = function(v) save = v end }),
@@ -48,7 +60,7 @@ local function render()
     children[#children + 1] = ui.button({
       text = "Conectar",
       variant = "primary",
-      onClick = function() dispatch("connect", { password = password, save = save }) end,
+      onClick = connectNow,
     })
   end
 
@@ -74,11 +86,11 @@ local function render()
     })
   end
 
-  if s.saved then
+  if s.saved and not s.connected and not s.busy then
     children[#children + 1] = ui.button({
       text = "Olvidar contraseña guardada",
       variant = "ghost",
-      onClick = function() dispatch("forget") end,
+      onClick = function() dispatch("forget", { user = user }) end,
     })
   end
 

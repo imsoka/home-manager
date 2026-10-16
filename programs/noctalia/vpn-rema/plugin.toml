@@ -10,11 +10,11 @@ tags        = ["bar", "panel", "utility", "network"]
 dependencies = ["secret-tool", "pkexec", "pgrep", "chmod"]
 
 [[setting]]
-key         = "account"
+key         = "vpn_user"
 type        = "string"
-label_key   = "settings.account.label"
-description_key = "settings.account.description"
-default     = "rema"
+label_key   = "settings.vpn_user.label"
+description_key = "settings.vpn_user.description"
+default     = "ogi-varaque"
 
 [[widget]]
 id    = "widget"
