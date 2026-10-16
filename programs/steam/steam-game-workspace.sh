@@ -1,7 +1,8 @@
 # Las ventanas de Steam van a un workspace "steam" y los juegos (que además
-# flotan y se centran) a uno "game". Cada uno solo existe mientras tiene
-# ventanas: se crea nombrando el workspace vacío del final y se le quita el
-# nombre al quedarse vacío, así niri lo borra y no desplaza Mod+1..9.
+# flotan, se centran y abren a 1920x1080) a uno "game". Cada uno solo existe
+# mientras tiene ventanas: se crea nombrando el workspace vacío del final y se
+# le quita el nombre al quedarse vacío, así niri lo borra y no desplaza
+# Mod+1..9.
 #
 # Un juego es una ventana con app-id steam_app_<id> (Proton) o cuyo proceso
 # tiene SteamAppId en el entorno (nativos; Steam se lo pone a todo lo que
@@ -68,6 +69,8 @@ niri msg -j event-stream | while read -r event; do
     elif is_game "$app_id" "$pid"; then
       [[ "$floating" == true ]] || niri msg action move-window-to-floating --id "$id"
       move_to_workspace "$id" game
+      niri msg action set-window-width --id "$id" 1920
+      niri msg action set-window-height --id "$id" 1080
       niri msg action center-window --id "$id"
     fi
     continue
