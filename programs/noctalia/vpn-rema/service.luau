@@ -73,6 +73,9 @@ local function refreshConnected()
       attempting = false
       setState({ needOtp = false, busy = false, message = "Conectada" })
     elseif attempting then
+      if os.time() - launchedAt > 150 then
+        return fail("Sin respuesta de openfortivpn (mira /run/vpn-rema.log)")
+      end
       local phase = readLog()
       if phase == "rejected" then
         fail("Contraseña o usuario rechazados (mira el keyring o escribe la contraseña)")

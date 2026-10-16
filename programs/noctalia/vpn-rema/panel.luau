@@ -39,13 +39,17 @@ local function render()
     children[#children + 1] = ui.label({ text = s.message, fontSize = 11, color = "on_surface_variant" })
   end
 
-  if not s.connected and not s.busy and not s.needOtp then
-    children[#children + 1] = ui.input({
-      value = user,
-      placeholder = "Usuario VPN",
-      onChange = function(text) user = text end,
-      onSubmit = function() dispatch("check", { user = user }) end,
-    })
+  -- El usuario se ve siempre; solo se bloquea mientras hay un intento o una conexión activa.
+  local idle = not s.connected and not s.busy and not s.needOtp
+  children[#children + 1] = ui.input({
+    value = user,
+    placeholder = "Usuario VPN",
+    enabled = idle,
+    onChange = function(text) user = text end,
+    onSubmit = function() dispatch("check", { user = user }) end,
+  })
+
+  if idle then
     children[#children + 1] = ui.input({
       value = password,
       password = true,
