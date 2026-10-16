@@ -121,6 +121,7 @@ end
 
 -- Envía el usuario, guarda la contraseña en el keyring si toca y lanza el wrapper.
 local function connect(user, password, save)
+  if attempting or (noctalia.state.get(STATE) or {}).connected then return end
   if not validUser(user) then
     return fail("Usuario no válido")
   end

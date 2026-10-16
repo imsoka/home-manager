@@ -49,21 +49,24 @@ local function render()
     onSubmit = function() dispatch("check", { user = user }) end,
   })
 
-  if idle then
+  -- Mientras conecta, los campos y el botón siguen visibles pero deshabilitados.
+  if not s.needOtp and not s.connected then
     children[#children + 1] = ui.input({
       value = password,
       password = true,
       placeholder = s.saved and "Contraseña (guardada en el keyring)" or "Contraseña VPN",
+      enabled = idle,
       onChange = function(text) password = text end,
       onSubmit = connectNow,
     })
     children[#children + 1] = ui.row({ gap = 8, align = "center" }, {
-      ui.toggle({ checked = save, onChange = function(v) save = (v == "true") end }),
+      ui.toggle({ checked = save, enabled = idle, onChange = function(v) save = (v == "true") end }),
       ui.label({ text = "Guardar en el keyring", fontSize = 11 }),
     })
     children[#children + 1] = ui.button({
-      text = "Conectar",
+      text = s.busy and "Conectando…" or "Conectar",
       variant = "primary",
+      enabled = idle,
       onClick = connectNow,
     })
   end
