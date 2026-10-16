@@ -61,6 +61,8 @@ local function readLog()
   local text = noctalia.readFile(LOG) or ""
   if text:find("Could not authenticate", 1, true) then
     return "rejected"
+  elseif text:find("Logged out", 1, true) or text:find("Closed connection", 1, true) then
+    return "closed"
   elseif text:find("Tunnel is up", 1, true) then
     return "up"
   elseif text:find("[Tt]oken:") or text:find("[Oo]ne.?[Tt]ime") then
@@ -81,6 +83,9 @@ local function refreshConnected()
       end
       phase = nil
     end
+
+    -- Un proceso zombie (<defunct>) también cuenta en pgrep; el log dice si la sesión ya se cerró.
+    if phase == "closed" then matched = false end
 
     if not matched then
       if attempting and os.time() - launchedAt > 150 then
