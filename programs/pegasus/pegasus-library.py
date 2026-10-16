@@ -455,6 +455,9 @@ def write_collection(name, shortname, sort_key, games, path):
             lines.append(f"assets.{asset}: {file}")
         lines.append(f"x-source: {g.source}")
         lines.append(f"x-id: {g.id}")
+        # El tema enseña "Install" en vez de "Play" (lanzarlo lo instala)
+        if not g.installed:
+            lines.append("x-installed: no")
         # El tema enseña "Desinstalar" (X) en los detalles
         if g.installed and g.source in UNINSTALLABLE:
             lines.append("x-uninstall: yes")

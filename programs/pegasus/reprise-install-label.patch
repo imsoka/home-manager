@@ -1,0 +1,82 @@
+diff --git a/core/Launch.qml b/core/Launch.qml
+new file mode 100644
+index 0000000..cc75c1b
+--- /dev/null
++++ b/core/Launch.qml
+@@ -0,0 +1,18 @@
++pragma Singleton
++import QtQuick 2.15
++
++// What the A button does to a game. pegasus-library tags the games that are
++// owned but not installed with x-installed: no; launching those installs them.
++QtObject {
++    function installed(game) {
++        if (!game)
++            return true;
++        return game.extra["installed"] === undefined || game.extra["installed"][0] !== "no";
++    }
++
++    function label(game) {
++        if (!installed(game))
++            return "Install";
++        return game && game.playTime > 0 ? "Continue" : "Play";
++    }
++}
+diff --git a/core/qmldir b/core/qmldir
+index 762795e..3bfc590 100644
+--- a/core/qmldir
++++ b/core/qmldir
+@@ -1,2 +1,3 @@
+ singleton Theme 1.0 Theme.qml
+ singleton Uninstall 1.0 Uninstall.qml
++singleton Launch 1.0 Launch.qml
+diff --git a/pages/DetailPage.qml b/pages/DetailPage.qml
+index 099503f..45f7455 100644
+--- a/pages/DetailPage.qml
++++ b/pages/DetailPage.qml
+@@ -62,8 +62,8 @@ FocusScope {
+         : (section === 2
+         ? [ { glyph: "A", label: "View" }, { glyph: "Y", label: favouriteLabel }, { glyph: "dpad", label: "Navigate" }, { glyph: "B", label: "Back" } ]
+         : section === 1
+-        ? [ { glyph: "A", label: "Play" }, { glyph: "dpad", label: "Scroll" }, { glyph: "Y", label: favouriteLabel }, { glyph: "B", label: "Back" } ]
+-        : [ { glyph: "A", label: actionIndex === 0 ? "Play" : favouriteLabel }, { glyph: "Y", label: favouriteLabel }, { glyph: "dpad", label: "Navigate" }, { glyph: "B", label: "Back" } ])
++        ? [ { glyph: "A", label: Launch.label(game) }, { glyph: "dpad", label: "Scroll" }, { glyph: "Y", label: favouriteLabel }, { glyph: "B", label: "Back" } ]
++        : [ { glyph: "A", label: actionIndex === 0 ? Launch.label(game) : favouriteLabel }, { glyph: "Y", label: favouriteLabel }, { glyph: "dpad", label: "Navigate" }, { glyph: "B", label: "Back" } ])
+           .concat(canUninstall ? [ { glyph: "X", label: "Uninstall" } ] : [])
+ 
+     readonly property string favouriteLabel: game && game.favorite ? "Remove from favourites" : "Add to favourites"
+@@ -281,7 +281,7 @@ FocusScope {
+                     readonly property bool active: page.section === 0 && !page.lightbox
+ 
+                     PillButton {
+-                        label: page.game && page.game.playTime > 0 ? "Continue" : "Play"
++                        label: Launch.label(page.game)
+                         focused: actions.active && page.actionIndex === 0
+                         dimmed: actions.active && page.actionIndex !== 0
+                     }
+diff --git a/pages/HomePage.qml b/pages/HomePage.qml
+index f6a452e..2402443 100644
+--- a/pages/HomePage.qml
++++ b/pages/HomePage.qml
+@@ -56,7 +56,7 @@ FocusScope {
+         return out;
+     }
+ 
+-    readonly property string playLabel: currentGame && currentGame.playTime > 0 ? "Continue" : "Play"
++    readonly property string playLabel: Launch.label(currentGame)
+     readonly property string favouriteLabel: currentGame && currentGame.favorite ? "Remove from favourites" : "Add to favourites"
+ 
+     readonly property real bandHeight: Theme.dp(Theme.heroBand)
+diff --git a/ui/ContextMenu.qml b/ui/ContextMenu.qml
+index 76644af..1f9c72b 100644
+--- a/ui/ContextMenu.qml
++++ b/ui/ContextMenu.qml
+@@ -24,7 +24,7 @@ FocusScope {
+     ]
+ 
+     readonly property var items: [
+-        { icon: "play", label: game && game.playTime > 0 ? "Continue" : "Play" },
++        { icon: "play", label: Launch.label(game) },
+         { icon: "info", label: "Details" },
+         { icon: game && game.favorite ? "heart" : "heart-outline",
+           label: game && game.favorite ? "Remove from favourites" : "Add to favourites" }
