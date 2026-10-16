@@ -36,7 +36,7 @@ in {
 
   systemd.user.services.steam-game-workspace = {
     Unit = {
-      Description = "Mueve los juegos de Steam a un workspace \"game\" temporal";
+      Description = "Mueve Steam y sus juegos a workspaces \"steam\" y \"game\" temporales";
       PartOf = [ "graphical-session.target" ];
       After = [ "graphical-session.target" ];
     };

@@ -1,7 +1,7 @@
-# Los juegos de Steam flotan, se centran y van a un workspace "game" que solo existe
-# mientras hay alguno abierto: se crea nombrando el workspace vacío del final y
-# se le quita el nombre al cerrar el último juego, así niri lo borra y no
-# desplaza Mod+1..9.
+# Las ventanas de Steam van a un workspace "steam" y los juegos (que además
+# flotan y se centran) a uno "game". Cada uno solo existe mientras tiene
+# ventanas: se crea nombrando el workspace vacío del final y se le quita el
+# nombre al quedarse vacío, así niri lo borra y no desplaza Mod+1..9.
 #
 # Un juego es una ventana con app-id steam_app_<id> (Proton) o cuyo proceso
 # tiene SteamAppId en el entorno (nativos; Steam se lo pone a todo lo que
@@ -9,8 +9,21 @@
 # que para ellas el PID real se saca de _NET_WM_PID.
 declare -A checked=()
 
-game_workspace_id() {
-  niri msg -j workspaces | jq -r '.[] | select(.name == "game") | .id'
+workspace_id() {
+  niri msg -j workspaces | jq -r --arg name "$1" '.[] | select(.name == $name) | .id'
+}
+
+# Mueve la ventana al workspace con ese nombre, creándolo al final si no existe
+move_to_workspace() {
+  local id=$1 name=$2 last
+  if [[ -z "$(workspace_id "$name")" ]]; then
+    last=$(niri msg -j workspaces | jq -r \
+      --arg out "$(niri msg -j workspaces | jq -r '.[] | select(.is_focused) | .output')" \
+      '[.[] | select(.output == $out) | .idx] | max')
+    niri msg action set-workspace-name --workspace "$last" "$name"
+  fi
+  niri msg action move-window-to-workspace --window-id "$id" "$name"
+  niri msg action focus-window --id "$id"
 }
 
 launched_by_steam() {
@@ -22,7 +35,6 @@ launched_by_steam() {
 is_game() {
   local app_id=$1 pid=$2 xwin xpid
   [[ "$app_id" =~ ^steam_app_ ]] && return 0
-  [[ "$app_id" =~ ^(steam|steamwebhelper)$ ]] && return 1
   [[ -n "$pid" && "$pid" != null ]] || return 1
 
   if [[ "$(cat "/proc/$pid/comm" 2>/dev/null)" == *xwayland-satel* ]]; then
@@ -43,18 +55,13 @@ niri msg -j event-stream | while read -r event; do
     read -r id app_id pid floating < <(jq -r '[.id, .app_id, .pid, .is_floating] | @tsv' <<<"$window")
     [[ -z "${checked[$id]:-}" ]] || continue
     checked[$id]=1
-    is_game "$app_id" "$pid" || continue
-
-    [[ "$floating" == true ]] || niri msg action move-window-to-floating --id "$id"
-    if [[ -z "$(game_workspace_id)" ]]; then
-      last=$(niri msg -j workspaces | jq -r \
-        --arg out "$(niri msg -j workspaces | jq -r '.[] | select(.is_focused) | .output')" \
-        '[.[] | select(.output == $out) | .idx] | max')
-      niri msg action set-workspace-name --workspace "$last" game
+    if [[ "$app_id" =~ ^(steam|steamwebhelper)$ ]]; then
+      move_to_workspace "$id" steam
+    elif is_game "$app_id" "$pid"; then
+      [[ "$floating" == true ]] || niri msg action move-window-to-floating --id "$id"
+      move_to_workspace "$id" game
+      niri msg action center-window --id "$id"
     fi
-    niri msg action move-window-to-workspace --window-id "$id" game
-    niri msg action focus-window --id "$id"
-    niri msg action center-window --id "$id"
     continue
   fi
 
@@ -62,12 +69,14 @@ niri msg -j event-stream | while read -r event; do
   [[ -n "$closed" ]] || continue
   unset "checked[$closed]"
 
-  # Se comprueba con cualquier cierre: puede que lo último en "game" no fuese
-  # un juego
-  ws=$(game_workspace_id)
-  [[ -n "$ws" ]] || continue
-  remaining=$(niri msg -j windows | jq --argjson ws "$ws" '[.[] | select(.workspace_id == $ws)] | length')
-  if (( remaining == 0 )); then
-    niri msg action unset-workspace-name game
-  fi
+  # Se comprueba con cualquier cierre: puede que lo último que quedaba en el
+  # workspace no fuese de Steam
+  for name in steam game; do
+    ws=$(workspace_id "$name")
+    [[ -n "$ws" ]] || continue
+    remaining=$(niri msg -j windows | jq --argjson ws "$ws" '[.[] | select(.workspace_id == $ws)] | length')
+    if (( remaining == 0 )); then
+      niri msg action unset-workspace-name "$name"
+    fi
+  done
 done
