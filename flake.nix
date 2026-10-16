@@ -40,6 +40,7 @@
         modules = [
           ./home.nix
           ./programs/noctalia/gaming.nix
+          ./programs/steam/steam.nix
           ./programs/noctalia/wallpaper.nix
         ];
       };
