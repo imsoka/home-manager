@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 {
   # Tema GTK para Thunar y el resto de apps GTK.
@@ -11,6 +11,9 @@
       name = "adw-gtk3-dark";
       package = pkgs.adw-gtk3;
     };
+
+    # Mantiene el comportamiento anterior (GTK4 usa el mismo tema que GTK3).
+    gtk4.theme = config.gtk.theme;
 
     iconTheme = {
       name = "Papirus-Dark";
