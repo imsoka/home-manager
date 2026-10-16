@@ -13,4 +13,13 @@
     ${pkgs.jq}/bin/jq '.MINIMIZE_TO_TRAY = true' "$settings" > "$tmp" \
       && run mv "$tmp" "$settings"
   '';
+
+  # Arranca con la sesión, directamente en la bandeja
+  xdg.configFile."autostart/discord.desktop".text = ''
+    [Desktop Entry]
+    Type=Application
+    Name=Discord
+    Exec=discord --start-minimized
+    Icon=discord
+  '';
 }
