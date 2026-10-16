@@ -1,0 +1,34 @@
+id          = "soka/vpn-rema"
+name        = "VPN rema"
+version     = "0.1.0"
+plugin_api  = 24
+author      = "soka"
+license     = "MIT"
+icon        = "shield"
+description = "Conectar y desconectar la VPN rema (openfortivpn) con contraseña en keyring y 2FA por email."
+tags        = ["bar", "panel", "utility", "network"]
+dependencies = ["secret-tool", "pkexec", "pgrep", "chmod"]
+
+[[setting]]
+key         = "account"
+type        = "string"
+label_key   = "settings.account.label"
+description_key = "settings.account.description"
+default     = "rema"
+
+[[widget]]
+id    = "widget"
+entry = "widget.luau"
+
+[[panel]]
+id              = "panel"
+entry           = "panel.luau"
+width           = 340
+height          = 300
+placement       = "attached"
+position        = "auto"
+open_near_click = true
+
+[[service]]
+id    = "service"
+entry = "service.luau"
