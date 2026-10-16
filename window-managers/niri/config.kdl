@@ -96,3 +96,9 @@ binds {
     // ThinkPad Teams key (sends XF86NotificationCenter) opens Teams
     XF86NotificationCenter { spawn "teams-for-linux"; }
 }
+
+// En pantalla completa niri manda el búfer del juego directo a la pantalla
+// (direct scanout); con NVIDIA + XWayland eso daba artefactos en Aion 2
+debug {
+    disable-direct-scanout
+}
