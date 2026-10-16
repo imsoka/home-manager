@@ -41,6 +41,7 @@
   home.stateVersion = "24.05"; # Please read the comment before changing.
 
   home.pointerCursor = {
+    enable = true;
     name = "everforest-cursors";
     package = pkgs.everforest-cursors;
     size = 32;
