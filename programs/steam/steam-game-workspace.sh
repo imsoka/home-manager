@@ -52,7 +52,10 @@ niri msg -j event-stream | while read -r event; do
   window=$(jq -c '.WindowOpenedOrChanged.window // empty' <<<"$event")
 
   if [[ -n "$window" ]]; then
-    read -r id app_id pid floating < <(jq -r '[.id, .app_id, .pid, .is_floating] | @tsv' <<<"$window")
+    # Separador \x1f y no tabuladores: read junta los tabuladores seguidos y un
+    # app-id vacío (gamescope) desplazaría los campos
+    IFS=$'\x1f' read -r id app_id pid floating < <(jq -r \
+      '[.id, .app_id, .pid, .is_floating] | map(. // "" | tostring) | join("\u001f")' <<<"$window")
     [[ -z "${checked[$id]:-}" ]] || continue
     checked[$id]=1
     if [[ "$app_id" =~ ^(steam|steamwebhelper)$ ]]; then
