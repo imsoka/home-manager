@@ -15,6 +15,12 @@ let
     ];
     text = builtins.readFile ./steam-proton-ge.sh;
   };
+
+  steamGameWorkspace = pkgs.writeShellApplication {
+    name = "steam-game-workspace";
+    runtimeInputs = with pkgs; [ niri jq xdotool xprop gnugrep coreutils ];
+    text = builtins.readFile ./steam-game-workspace.sh;
+  };
 in {
   home.packages = [ steamWrapper ];
 
@@ -27,4 +33,18 @@ in {
     Exec=${steamWrapper}/bin/steam -silent
     Icon=steam
   '';
+
+  systemd.user.services.steam-game-workspace = {
+    Unit = {
+      Description = "Mueve los juegos de Steam a un workspace \"game\" temporal";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${steamGameWorkspace}/bin/steam-game-workspace";
+      Restart = "on-failure";
+      RestartSec = 2;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
 }
