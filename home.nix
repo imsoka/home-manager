@@ -7,6 +7,7 @@
     ./programs/codex/codex.nix
     ./programs/gtk/gtk.nix
     ./window-managers/i3/i3.nix
+    ./programs/keepassxc/keepassxc.nix
     ./window-managers/niri/niri.nix
   ];
 
