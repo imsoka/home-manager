@@ -52,8 +52,12 @@ end
 -- Lee el log del wrapper y deduce en qué punto está openfortivpn.
 -- Solo se lee si el log es de este intento (el wrapper lo sobrescribe al arrancar).
 local function readLog()
-  local info = noctalia.fileInfo(LOG)
-  if not info or info.mtime < launchedAt then return nil end
+  -- Durante un intento, solo vale el log de ese intento (el wrapper lo sobrescribe al arrancar).
+  -- Sin intento (p. ej. tras recargar el plugin), el log es el del proceso vivo.
+  if attempting then
+    local info = noctalia.fileInfo(LOG)
+    if not info or info.mtime < launchedAt then return nil end
+  end
   local text = noctalia.readFile(LOG) or ""
   if text:find("Could not authenticate", 1, true) then
     return "rejected"
@@ -72,7 +76,10 @@ local function refreshConnected()
     local phase = attempting and readLog() or nil
 
     if phase == "rejected" then
-      return fail("Contraseña o usuario rechazados (escríbela de nuevo, sin pegar)")
+      if attempting then
+        return fail("Contraseña o usuario rechazados (escríbela de nuevo, sin pegar)")
+      end
+      phase = nil
     end
 
     if not matched then
