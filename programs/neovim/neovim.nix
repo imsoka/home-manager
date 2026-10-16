@@ -16,6 +16,10 @@
     vimAlias = true;
     vimdiffAlias = true;
 
+    # Mantiene los valores que ya usaba la configuración por defecto.
+    withRuby = true;
+    withPython3 = true;
+
     extraPackages = with pkgs; [
       intelephense
       lua-language-server
@@ -36,6 +40,7 @@
     plugins = with pkgs.vimPlugins; [
       {
         plugin = gruvbox-nvim;
+        type = "viml";
         config = "colorscheme gruvbox";
       }
 
@@ -53,6 +58,7 @@
 
       {
         plugin = nvim-cmp;
+        type = "viml";
         config = toLuaFile ./lua/plugins/nvim-cmp.lua;
       }
 
