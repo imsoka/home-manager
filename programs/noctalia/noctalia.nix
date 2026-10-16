@@ -16,7 +16,8 @@ in {
   # Plugin de la VPN rema (openfortivpn). Wrapper y polkit están en NixOS
   # (nixos/hosts/work/vpn-rema.nix). Activar en runtime con:
   #   noctalia msg plugins enable soka/vpn-rema
-  xdg.configFile."noctalia/plugins/vpn-rema".source = ./vpn-rema;
+  # Noctalia solo escanea plugins locales en ~/.local/share/noctalia/plugins
+  xdg.dataFile."noctalia/plugins/vpn-rema".source = ./vpn-rema;
 
   # Battery plugin needs these at runtime; vpn-rema usa secret-tool (keyring)
   home.packages = with pkgs; [
