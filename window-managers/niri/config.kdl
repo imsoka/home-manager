@@ -31,6 +31,12 @@ spawn-at-startup "noctalia" "-d"
 spawn-at-startup "sh" "-c" "wl-paste --type text --watch cliphist store"
 spawn-at-startup "sh" "-c" "wl-paste --type image --watch cliphist store"
 
+// La ventana de ajustes de Noctalia flota en vez de abrirse como columna
+window-rule {
+    match app-id=r#"^dev\.noctalia\.Noctalia$"#
+    open-floating true
+}
+
 binds {
     Mod+Return { spawn "alacritty"; }
     Mod+D { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
