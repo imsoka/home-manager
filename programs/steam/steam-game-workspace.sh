@@ -13,17 +13,22 @@ workspace_id() {
   niri msg -j workspaces | jq -r --arg name "$1" '.[] | select(.name == $name) | .id'
 }
 
-# Mueve la ventana al workspace con ese nombre, creándolo al final si no existe
+# Mueve la ventana al workspace con ese nombre, creándolo al final si no existe,
+# y la enfoca salvo que se esté jugando: los diálogos de Steam que salen al
+# lanzar un juego no deben sacar del workspace "game"
 move_to_workspace() {
-  local id=$1 name=$2 last
+  local id=$1 name=$2 last focused
+  focused=$(niri msg -j workspaces | jq -r '.[] | select(.is_focused) | .name // ""')
   if [[ -z "$(workspace_id "$name")" ]]; then
     last=$(niri msg -j workspaces | jq -r \
       --arg out "$(niri msg -j workspaces | jq -r '.[] | select(.is_focused) | .output')" \
       '[.[] | select(.output == $out) | .idx] | max')
     niri msg action set-workspace-name --workspace "$last" "$name"
   fi
-  niri msg action move-window-to-workspace --window-id "$id" "$name"
-  niri msg action focus-window --id "$id"
+  niri msg action move-window-to-workspace --window-id "$id" --focus false "$name"
+  if [[ "$name" == game || "$focused" != game ]]; then
+    niri msg action focus-window --id "$id"
+  fi
 }
 
 launched_by_steam() {
