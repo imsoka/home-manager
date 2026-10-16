@@ -58,7 +58,7 @@ local function render()
       onSubmit = connectNow,
     })
     children[#children + 1] = ui.row({ gap = 8, align = "center" }, {
-      ui.toggle({ checked = save, onChange = function(v) save = v end }),
+      ui.toggle({ checked = save, onChange = function(v) save = (v == "true") end }),
       ui.label({ text = "Guardar en el keyring", fontSize = 11 }),
     })
     children[#children + 1] = ui.button({
