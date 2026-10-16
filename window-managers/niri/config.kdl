@@ -58,6 +58,13 @@ window-rule {
     open-floating true
 }
 
+// La ventana principal de Steam se abre maximizada (como Mod+M); el título
+// deja fuera sus diálogos, que comparten app-id
+window-rule {
+    match app-id=r#"^steam$"# title=r#"^Steam$"#
+    open-maximized true
+}
+
 binds {
     Mod+Return { spawn "alacritty"; }
     Mod+D { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
