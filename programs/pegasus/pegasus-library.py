@@ -8,6 +8,12 @@
 # - Heroic (Epic, GOG, Amazon, Zoom y juegos añadidos a mano): sus cachés en
 #   ~/.config/heroic, que ya tienen la biblioteca completa con imágenes.
 #
+# El tiempo jugado sale de las tiendas y sustituye al que cuenta Pegasus en
+# stats.db: Pegasus lanza los juegos a través de Steam o Heroic, que son
+# quienes saben cuánto se ha jugado (steam:// vuelve al momento).
+# - Steam: playtime_forever de GetOwnedGames y Playtime de localconfig.vdf
+# - Heroic: store/timestamp.json, que apunta lo jugado desde Heroic
+#
 # Cada colección va en su propio directorio porque Pegasus mete cada juego en
 # todas las colecciones declaradas antes que él en el mismo archivo. Esos
 # directorios se registran en game_dirs.txt de Pegasus.
@@ -15,12 +21,14 @@ import json
 import os
 import re
 import shutil
+import sqlite3
 import sys
 import time
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 
 import vdf
@@ -32,6 +40,7 @@ COLLECTIONS = DATA / "collections"
 MEDIA = DATA / "media"
 CACHE = HOME / ".cache/pegasus-library"
 PEGASUS_GAME_DIRS = HOME / ".config/pegasus-frontend/game_dirs.txt"
+PEGASUS_STATS = HOME / ".config/pegasus-frontend/stats.db"
 STEAM = HOME / ".local/share/Steam"
 HEROIC = HOME / ".config/heroic"
 
@@ -84,6 +93,11 @@ class Game:
     release: str = ""
     # tipo de asset de Pegasus -> ruta local
     assets: dict = field(default_factory=dict)
+    # Segundos jugados según la tienda; None si no se pudo saber (no se
+    # toca lo que tenga Pegasus)
+    playtime: int | None = None
+    # Fin de la última partida (epoch), 0 si no se sabe
+    last_played: int = 0
 
 
 def log(*args):
@@ -237,8 +251,32 @@ def steam_owned():
     except (OSError, ValueError) as e:
         log("steam: fallo al pedir la biblioteca:", e)
         return None
-    return {str(g["appid"]): g.get("name", str(g["appid"]))
+    return {str(g["appid"]): g
             for g in resp.get("response", {}).get("games", [])}
+
+
+def steam_local_playtime():
+    """appid -> (minutos, última partida) de localconfig.vdf, o None."""
+    steamid = steam_user_id()
+    if not steamid:
+        return None
+    # La carpeta de userdata es el id de cuenta (32 bits) del SteamID64
+    account = int(steamid) - 76561197960265728 if len(steamid) == 17 \
+        else int(steamid)
+    data = read_vdf(STEAM / f"userdata/{account}/config/localconfig.vdf")
+    if data is None:
+        return None
+    node = data
+    # Las mayúsculas de cada clave cambian según la versión de Steam
+    for key in ("UserLocalConfigStore", "Software", "Valve", "Steam", "apps"):
+        node = next((v for k, v in node.items()
+                     if k.lower() == key.lower() and isinstance(v, dict)), {})
+    out = {}
+    for appid, info in node.items():
+        if isinstance(info, dict) and "Playtime" in info:
+            out[appid] = (int(info.get("Playtime") or 0),
+                          int(info.get("LastPlayed") or 0))
+    return out
 
 
 def steam_store_items(appids):
@@ -294,8 +332,13 @@ def steam_local_image(appid, name):
 
 def steam_games():
     installed = steam_installed()
-    owned = steam_owned() or {}
+    owned_raw = steam_owned()
+    owned = {appid: g.get("name", appid)
+             for appid, g in (owned_raw or {}).items()}
     titles = {**owned, **installed}
+    local_playtime = steam_local_playtime()
+    # Sin ninguna de las dos fuentes no se sabe nada: no se toca Pegasus
+    know_playtime = owned_raw is not None or local_playtime is not None
     store = steam_store_items(sorted(titles))
 
     games, plans = [], {}
@@ -320,6 +363,15 @@ def steam_games():
             release=(time.strftime("%Y-%m-%d", time.gmtime(release))
                      if release else ""),
         )
+        if know_playtime:
+            # Las dos van en minutos; vale la más reciente (la API va al día
+            # con otros PCs y localconfig.vdf sin red)
+            api = (owned_raw or {}).get(appid, {})
+            local = (local_playtime or {}).get(appid, (0, 0))
+            game.playtime = 60 * max(int(api.get("playtime_forever") or 0),
+                                     local[0])
+            game.last_played = max(int(api.get("rtime_last_played") or 0),
+                                   local[1])
         idx = len(games)
         games.append(game)
 
@@ -369,8 +421,27 @@ def heroic_installed(runner):
     return None
 
 
+def heroic_playtime():
+    """appName -> (minutos, última partida) de lo jugado desde Heroic."""
+    if not HEROIC.is_dir():
+        return None
+    # No existe hasta que se juega algo desde Heroic
+    data = read_json(HEROIC / "store/timestamp.json", {}) or {}
+    out = {}
+    for app_name, info in data.items():
+        if not isinstance(info, dict):
+            continue
+        try:
+            last = int(datetime.fromisoformat(info["lastPlayed"]).timestamp())
+        except (KeyError, TypeError, ValueError):
+            last = 0
+        out[app_name] = (int(info.get("totalPlayed") or 0), last)
+    return out
+
+
 def heroic_games():
     games, plans = [], {}
+    playtime = heroic_playtime()
     for runner, (cache, key, collection) in HEROIC_STORES.items():
         library = (read_json(HEROIC / cache, {}) or {}).get(key) or []
         installed = heroic_installed(runner)
@@ -404,6 +475,9 @@ def heroic_games():
                          or about.get("description")
                          or info.get("description") or ""),
             )
+            if playtime is not None:
+                minutes, game.last_played = playtime.get(app_name, (0, 0))
+                game.playtime = 60 * minutes
             idx = len(games)
             games.append(game)
 
@@ -482,6 +556,45 @@ def update_game_dirs(dirs):
         PEGASUS_GAME_DIRS.write_text("\n".join(new) + "\n")
 
 
+def update_stats(games):
+    """Deja en stats.db de Pegasus el tiempo de cada tienda.
+
+    Pegasus suma las partidas (plays) de cada file: y toma como última
+    partida inicio + duración, así que cada juego queda en una sola partida
+    que acaba en la última vez que se jugó. Sin fecha conocida acaba en 1970
+    y el tema pone "Never played".
+    """
+    known = [g for g in games if g.playtime is not None]
+    if not known:
+        return
+    PEGASUS_STATS.parent.mkdir(parents=True, exist_ok=True)
+    db = sqlite3.connect(PEGASUS_STATS, timeout=30)
+    try:
+        with db:
+            # Mismo esquema que crea Pegasus
+            db.execute("CREATE TABLE IF NOT EXISTS paths(id INTEGER PRIMARY "
+                       "KEY,path TEXT UNIQUE NOT NULL)")
+            db.execute("CREATE TABLE IF NOT EXISTS plays(id INTEGER PRIMARY "
+                       "KEY,path_id INTEGER NOT NULL REFERENCES plays(id),"
+                       "start_time INTEGER NOT NULL,"
+                       "duration INTEGER NOT NULL)")
+            for g in known:
+                key = f"{g.source}:{g.id}"
+                db.execute("DELETE FROM plays WHERE path_id IN "
+                           "(SELECT id FROM paths WHERE path = ?)", (key,))
+                if g.playtime <= 0:
+                    continue
+                db.execute("INSERT OR IGNORE INTO paths(path) VALUES(?)",
+                           (key,))
+                db.execute("INSERT INTO plays(path_id, start_time, duration) "
+                           "SELECT id, ?, ? FROM paths WHERE path = ?",
+                           (g.last_played - g.playtime, g.playtime, key))
+    finally:
+        db.close()
+    log(f"tiempo jugado: {sum(g.playtime > 0 for g in known)} juegos "
+        f"-> {PEGASUS_STATS}")
+
+
 def main():
     games = []
     for name, plugin in (("steam", steam_games), ("heroic", heroic_games)):
@@ -518,6 +631,10 @@ def main():
                 shutil.rmtree(old)
 
     update_game_dirs(sorted(dirs))
+    try:
+        update_stats(games)
+    except sqlite3.Error as e:  # sin tiempos se abre Pegasus igual
+        log("tiempo jugado: error:", repr(e))
     log(f"{len(games)} juegos en {len(dirs)} colecciones -> {COLLECTIONS}")
 
 
