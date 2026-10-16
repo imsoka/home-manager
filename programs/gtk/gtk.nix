@@ -15,6 +15,12 @@
     # Mantiene el comportamiento anterior (GTK4 usa el mismo tema que GTK3).
     gtk4.theme = config.gtk.theme;
 
+    # La plantilla GTK de Noctalia reescribe gtk.css para añadir este import;
+    # se genera ya incluido para que el resultado sea el mismo
+    gtk4.extraCss = ''
+      @import url("noctalia.css");
+    '';
+
     iconTheme = {
       name = "Papirus-Dark";
       package = pkgs.papirus-icon-theme;
@@ -25,4 +31,8 @@
       size = 10;
     };
   };
+
+  # Noctalia cambia el enlace por un archivo normal al regenerar el tema;
+  # sin force el siguiente switch se negaría a sobrescribirlo
+  xdg.configFile."gtk-4.0/gtk.css".force = true;
 }
