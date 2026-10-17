@@ -24,16 +24,6 @@ let
 in {
   home.packages = [ steamWrapper ];
 
-  # Arranca con la sesión sin abrir ventana (-silent: solo icono en la bandeja).
-  # Pasa por el wrapper de arriba, así que también comprueba GE-Proton.
-  xdg.configFile."autostart/steam.desktop".text = ''
-    [Desktop Entry]
-    Type=Application
-    Name=Steam
-    Exec=${steamWrapper}/bin/steam -silent
-    Icon=steam
-  '';
-
   systemd.user.services.steam-game-workspace = {
     Unit = {
       Description = "Mueve Steam y sus juegos a workspaces \"steam\" y \"game\" temporales";
