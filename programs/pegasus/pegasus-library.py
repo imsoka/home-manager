@@ -17,6 +17,7 @@
 # Cada colección va en su propio directorio porque Pegasus mete cada juego en
 # todas las colecciones declaradas antes que él en el mismo archivo. Esos
 # directorios se registran en game_dirs.txt de Pegasus.
+import io
 import json
 import os
 import re
@@ -32,6 +33,7 @@ from datetime import datetime
 from pathlib import Path
 
 import vdf
+from PIL import Image
 
 HOME = Path.home()
 CONFIG = HOME / ".config/pegasus-library"
@@ -59,6 +61,19 @@ UNINSTALLABLE = {"steam", "legendary", "nile", "gog", "zoom"}
 STEAM_CDN = "https://shared.akamai.steamstatic.com/store_item_assets/"
 STEAM_STORE_TTL = 7 * 24 * 3600
 MISSING_RETRY = 7 * 24 * 3600
+
+# Las imágenes se guardan en WebP (Pegasus lo lee con qtimageformats) y como
+# mucho al tamaño al que las enseña el tema en el stream a 1080p: las de las
+# tiendas llegan a 4K y ocupaban diez veces más.
+ASSET_SIZES = {
+    "boxFront": (600, 900),
+    "background": (1920, 1080),
+    "logo": (800, 400),
+}
+WEBP_QUALITY = 80
+# Formatos en los que se guardaban antes: se convierten sin volver a
+# descargarlos
+OLD_EXTS = (".jpg", ".jpeg", ".png", ".webp")
 
 # Herramientas que Steam instala como apps y no tienen ficha en la tienda
 STEAM_TOOLS = re.compile(
@@ -136,50 +151,85 @@ def http_json(url, params=None):
 
 # --- Imágenes -------------------------------------------------------------
 
+def fits(path, size):
+    """Si ya es un WebP dentro del tamaño máximo."""
+    try:
+        with Image.open(path) as im:
+            return (im.format == "WEBP"
+                    and im.width <= size[0] and im.height <= size[1])
+    except (OSError, ValueError, Image.DecompressionBombError):
+        return False
+
+
+def save_webp(src, dest, size):
+    """Reduce la imagen src (ruta o bytes) a size y la guarda en WebP."""
+    with Image.open(io.BytesIO(src) if isinstance(src, bytes) else src) as im:
+        # Los JPEG se decodifican ya a escala reducida (mucho más rápido)
+        im.draft("RGB", size)
+        alpha = (im.mode in ("RGBA", "LA", "PA")
+                 or (im.mode == "P" and "transparency" in im.info))
+        im = im.convert("RGBA" if alpha else "RGB")
+    im.thumbnail(size, Image.LANCZOS)
+    im.save(dest, "WEBP", quality=WEBP_QUALITY)
+
+
 def fetch_asset(dest, sources):
-    """Copia o descarga la primera fuente disponible a dest.
+    """Guarda en dest (WebP) la primera fuente disponible.
 
     sources: rutas locales (Path) o URLs (str), por orden de preferencia.
     Si ninguna existe deja un marcador .missing para no reintentar en cada
     ejecución.
     """
-    if dest.exists():
+    size = ASSET_SIZES[dest.stem]
+    if dest.exists() and fits(dest, size):
         return dest
+    old = [p for p in (dest.with_suffix(e) for e in OLD_EXTS) if p.is_file()]
     missing = dest.with_suffix(dest.suffix + ".missing")
-    if missing.exists():
+    if not old and missing.exists():
         if time.time() - missing.stat().st_mtime < MISSING_RETRY:
             return None
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(dest.suffix + ".part")
-    for src in sources:
+    for src in old + sources:
         if not src:
             continue
         try:
             if isinstance(src, Path):
                 if not src.is_file():
                     continue
-                shutil.copyfile(src, tmp)
+                save_webp(src, tmp, size)
             else:
-                tmp.write_bytes(http_get(src))
+                save_webp(http_get(src), tmp, size)
             tmp.replace(dest)
             missing.unlink(missing_ok=True)
+            for p in old:
+                if p != dest:
+                    p.unlink(missing_ok=True)
             return dest
-        except (OSError, ValueError):
-            # URL o archivo inválido: se prueba la siguiente fuente
+        except (OSError, ValueError, Image.DecompressionBombError):
+            # URL, archivo o imagen inválidos: se prueba la siguiente fuente
             continue
     tmp.unlink(missing_ok=True)
     missing.touch()
     return None
 
 
-def ext_of(src, default=".jpg"):
-    path = urllib.parse.urlparse(str(src)).path
-    ext = os.path.splitext(path)[1].lower()
-    return ext if ext in (".jpg", ".jpeg", ".png", ".webp") else default
+def clean_media_dir(path):
+    """Restos de versiones anteriores: el banner "steam" (el tema no lo usa)
+    y los marcadores .missing de cuando se guardaban en JPEG o PNG."""
+    if not path.is_dir():
+        return
+    for f in path.iterdir():
+        if (f.name.startswith("steam.")
+                or (f.name.endswith(".missing")
+                    and not f.name.endswith(".webp.missing"))):
+            f.unlink(missing_ok=True)
 
 
 def resolve_assets(games, plans):
     """plans: {(índice, asset): (destino, [fuentes])}, en paralelo."""
+    for path in {dest.parent for dest, _ in plans.values()}:
+        clean_media_dir(path)
     with ThreadPoolExecutor(max_workers=8) as pool:
         futures = {
             key: pool.submit(fetch_asset, dest, sources)
@@ -390,7 +440,6 @@ def steam_games():
         for asset, local, key, fallback in (
             ("boxFront", "library_600x900.jpg", "library_capsule_2x",
              "library_600x900_2x.jpg"),
-            ("steam", "header.jpg", "header", "header.jpg"),
             ("background", "library_hero.jpg", "library_hero",
              "library_hero.jpg"),
             ("logo", "logo.png", None, "logo.png"),
@@ -399,7 +448,7 @@ def steam_games():
             if key:
                 sources.append(cdn(key, fallback))
             sources.append(STEAM_CDN + f"steam/apps/{appid}/{fallback}")
-            dest = media / (asset + ext_of(local))
+            dest = media / (asset + ".webp")
             plans[(idx, asset)] = (dest, sources)
     resolve_assets(games, plans)
     return games
@@ -490,7 +539,6 @@ def heroic_games():
             media = MEDIA / runner / safe_id
             for asset, srcs in (
                 ("boxFront", [info.get("art_square")]),
-                ("steam", [info.get("art_cover")]),
                 ("background", [info.get("art_background"),
                                 info.get("art_cover")]),
                 ("logo", [info.get("art_logo")]),
@@ -498,7 +546,7 @@ def heroic_games():
                 sources = [s if s.startswith("http") else Path(s)
                            for s in srcs if s]
                 if sources:
-                    dest = media / (asset + ext_of(sources[0]))
+                    dest = media / (asset + ".webp")
                     plans[(idx, asset)] = (dest, sources)
     resolve_assets(games, plans)
     return games

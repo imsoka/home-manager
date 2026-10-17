@@ -71,7 +71,7 @@ let
   };
 
   pegasusLibrary = pkgs.writers.writePython3Bin "pegasus-library" {
-    libraries = [ pkgs.python3Packages.vdf ];
+    libraries = with pkgs.python3Packages; [ vdf pillow ];
   } (builtins.readFile ./pegasus-library.py);
 
   # Lo que cambia al instalar, desinstalar o actualizar la biblioteca
