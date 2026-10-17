@@ -10,7 +10,7 @@
 #
 # El tiempo jugado sale de las tiendas y sustituye al que cuenta Pegasus en
 # stats.db: Pegasus lanza los juegos a través de Steam o Heroic, que son
-# quienes saben cuánto se ha jugado (steam:// vuelve al momento).
+# quienes saben cuánto se ha jugado.
 # - Steam: playtime_forever de GetOwnedGames y Playtime de localconfig.vdf
 # - Heroic: store/timestamp.json, que apunta lo jugado desde Heroic
 #
@@ -44,7 +44,8 @@ PEGASUS_STATS = HOME / ".config/pegasus-frontend/stats.db"
 STEAM = HOME / ".local/share/Steam"
 HEROIC = HOME / ".config/heroic"
 
-STEAM_CMD = os.environ.get("PEGASUS_LIBRARY_STEAM", "steam")
+# Lanza un juego instalado y espera a que se cierre (vuelve a Pegasus)
+PLAY_CMD = os.environ.get("PEGASUS_LIBRARY_PLAY", "pegasus-play")
 HEROIC_CMD = os.environ.get("PEGASUS_LIBRARY_HEROIC", "heroic")
 INSTALL_CMD = os.environ.get("PEGASUS_LIBRARY_INSTALL", "heroic-install")
 STEAM_INSTALL_CMD = os.environ.get("PEGASUS_LIBRARY_STEAM_INSTALL",
@@ -349,7 +350,7 @@ def steam_games():
         info = item.get("basic_info", {})
         is_installed = appid in installed
         # Sin instalar: steam-install, que lo instala en /games sin preguntar
-        launch = (f"{STEAM_CMD} steam://rungameid/{appid}" if is_installed
+        launch = (f"{PLAY_CMD} steam {appid}" if is_installed
                   else f"{STEAM_INSTALL_CMD} {appid}")
         release = item.get("release", {}).get("steam_release_date")
         game = Game(
@@ -460,7 +461,9 @@ def heroic_games():
             # pregunta si instalarlo
             unattended = (runner in UNATTENDED
                           and not info.get("thirdPartyManagedApp"))
-            if is_installed or not unattended:
+            if is_installed:
+                launch = f"{PLAY_CMD} {runner} {app_name}"
+            elif not unattended:
                 launch = (f"{HEROIC_CMD} --no-gui "
                           f"heroic://launch/{runner}/{app_name}")
             else:

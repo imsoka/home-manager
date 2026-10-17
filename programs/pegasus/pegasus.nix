@@ -18,7 +18,7 @@ let
       legendary-gl nile jq libnotify procps systemd coreutils gnugrep zenity
     ];
     text = ''
-      heroic_cmd=${config.home.profileDirectory}/bin/heroic
+      play_cmd=${pegasusPlay}/bin/pegasus-play
     '' + builtins.readFile ./heroic-install.sh;
   };
 
@@ -41,7 +41,19 @@ let
     # El wrapper de steam (GE-Proton) de home-manager
     text = ''
       steam_cmd=${config.home.profileDirectory}/bin/steam
+      play_cmd=${pegasusPlay}/bin/pegasus-play
     '' + builtins.readFile ./steam-install.sh;
+  };
+
+  # Lanza un juego instalado y espera a que se cierre, para que Pegasus
+  # vuelva a mostrarse al terminar
+  pegasusPlay = pkgs.writeShellApplication {
+    name = "pegasus-play";
+    runtimeInputs = with pkgs; [ procps coreutils gnugrep gnused util-linux ];
+    text = ''
+      steam_cmd=${config.home.profileDirectory}/bin/steam
+      heroic_cmd=${config.home.profileDirectory}/bin/heroic
+    '' + builtins.readFile ./pegasus-play.sh;
   };
 
   # Desinstala desde Pegasus: el tema deja la petición en
@@ -116,7 +128,7 @@ let
 in {
   home.packages = [
     pkgs.heroic heroicInstall steamInstall pegasusLibrary pegasusWrapper
-    pegasusUninstall
+    pegasusUninstall pegasusPlay
   ];
 
   xdg.configFile."pegasus-frontend/themes/reprise".source = reprise;
@@ -153,10 +165,10 @@ in {
       ExecStart = "${pegasusLibrary}/bin/pegasus-library";
       Environment = [
         # Rutas estables para los comandos de lanzamiento (no del store)
-        "PEGASUS_LIBRARY_STEAM=${config.home.profileDirectory}/bin/steam"
         "PEGASUS_LIBRARY_HEROIC=${config.home.profileDirectory}/bin/heroic"
         "PEGASUS_LIBRARY_INSTALL=${config.home.profileDirectory}/bin/heroic-install"
         "PEGASUS_LIBRARY_STEAM_INSTALL=${config.home.profileDirectory}/bin/steam-install"
+        "PEGASUS_LIBRARY_PLAY=${config.home.profileDirectory}/bin/pegasus-play"
       ];
     };
   };

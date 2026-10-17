@@ -145,7 +145,7 @@ fi
 if [ "$(cat "$result" 2>/dev/null)" = ok ]; then
   # Se ha esperado a que terminara: a jugar. En Pegasus seguirá en "Sin
   # instalar" hasta que se vuelva a abrir (solo lee la biblioteca al arrancar)
-  exec "$heroic_cmd" --no-gui "heroic://launch/$runner/$app"
+  exec "$play_cmd" "$runner" "$app"
 else
   zenity --error --title="Error" --timeout=10 --width=420 \
     --text="No se pudo instalar $title.\n\nDetalles: journalctl --user -u $unit" \

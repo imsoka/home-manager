@@ -41,14 +41,14 @@ name="$(jq -r '.name // empty' "$HOME/.cache/pegasus-library/steam-store/$appid.
 name="${name:-$appid}"
 
 # Bibliotecas registradas en Steam: si el juego ya tiene manifiesto en alguna
-# (instalado o a medias), no se toca y se abre con Steam como siempre
+# (instalado o a medias), no se toca y se abre como los instalados
 libraries() {
   grep -oE '"path"[[:space:]]+"[^"]+"' "$steam_root/steamapps/libraryfolders.vdf" \
     2>/dev/null | sed -E 's/.*"([^"]+)"$/\1/' || true
 }
 for lib in $(libraries); do
   if [ -f "$lib/steamapps/appmanifest_$appid.acf" ]; then
-    exec "$steam_cmd" "steam://rungameid/$appid"
+    exec "$play_cmd" steam "$appid"
   fi
 done
 
@@ -132,4 +132,4 @@ fi
 
 # Se ha esperado a que terminara: a jugar. En Pegasus seguirá en "Sin
 # instalar" hasta que se vuelva a abrir (solo lee la biblioteca al arrancar)
-exec "$steam_cmd" "steam://rungameid/$appid"
+exec "$play_cmd" steam "$appid"
