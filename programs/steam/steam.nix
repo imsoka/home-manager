@@ -1,9 +1,13 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 
 let
   setDefaultCompatTool = pkgs.writers.writePython3Bin "set-default-compat-tool" {
     libraries = [ pkgs.python3Packages.vdf ];
   } (builtins.readFile ./set-default-compat-tool.py);
+
+  setLaunchOptions = pkgs.writers.writePython3Bin "set-launch-options" {
+    libraries = [ pkgs.python3Packages.vdf ];
+  } (builtins.readFile ./set-launch-options.py);
 
   # Va antes que el steam del sistema en el PATH, así que lo usan el .desktop
   # y los lanzadores
@@ -11,9 +15,21 @@ let
     name = "steam";
     runtimeInputs = with pkgs; [
       curl jq coreutils gnutar gzip findutils procps libnotify util-linux zenity
-      setDefaultCompatTool
+      setDefaultCompatTool setLaunchOptions
     ];
-    text = builtins.readFile ./steam-proton-ge.sh;
+    # Ruta estable del perfil: queda escrita en las opciones de lanzamiento
+    # y no debe cambiar con cada generación
+    text = ''
+      steam_gamescope=${config.home.profileDirectory}/bin/steam-gamescope
+      # Comandos delante de las opciones de lanzamiento de juegos concretos.
+      # AION 2 abre su DPS meter (con-a2tools, en la config de NixOS)
+      game_prefixes=("3393110=/run/current-system/sw/bin/con-a2tools")
+    '' + builtins.readFile ./steam-proton-ge.sh;
+  };
+
+  steamGamescope = pkgs.writeShellApplication {
+    name = "steam-gamescope";
+    text = builtins.readFile ./steam-gamescope.sh;
   };
 
   steamGameWorkspace = pkgs.writeShellApplication {
@@ -22,7 +38,7 @@ let
     text = builtins.readFile ./steam-game-workspace.sh;
   };
 in {
-  home.packages = [ steamWrapper ];
+  home.packages = [ steamWrapper steamGamescope ];
 
   systemd.user.services.steam-game-workspace = {
     Unit = {

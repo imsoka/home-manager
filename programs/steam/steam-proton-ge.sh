@@ -1,5 +1,6 @@
 # Wrapper de steam: antes de abrirlo, instala el último GE-Proton si no lo
-# tenemos y lo pone como herramienta de compatibilidad por defecto.
+# tenemos y lo pone como herramienta de compatibilidad por defecto, y
+# envuelve los juegos con gamescope y gamemoderun.
 # Cualquier fallo (sin red, GitHub caído...) no impide abrir Steam.
 
 steam_root="$HOME/.local/share/Steam"
@@ -117,4 +118,11 @@ update_proton_ge() {
 
 # En subshell: el trap limpia el temporal y un fallo no impide abrir Steam
 (update_proton_ge) || true
+
+# Todos los juegos con gamescope y gamemoderun (ver set-launch-options.py).
+# Con Steam abierto no: reescribe localconfig.vdf al salir
+if ! pgrep -f 'ubuntu12_32/steam' >/dev/null; then
+  set-launch-options "$steam_root" "$steam_gamescope" "${game_prefixes[@]}" || notify-send -a Steam -i steam Steam \
+    "No se pudieron poner gamescope y gamemode en las opciones de lanzamiento" || true
+fi
 exec "$real_steam" "$@"
