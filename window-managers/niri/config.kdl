@@ -58,6 +58,14 @@ window-rule {
     open-floating true
 }
 
+// El DPS meter de AION 2 (A2Tools) flota; steam-game-workspace lo lleva al
+// workspace "game" con el juego. App-id "a2tools-dps-meter" en X11, en
+// Wayland depende de Tauri
+window-rule {
+    match app-id=r#"(?i)a2tools"#
+    open-floating true
+}
+
 // La ventana principal de Steam se abre maximizada (como Mod+M); el título
 // deja fuera sus diálogos, que comparten app-id
 window-rule {
