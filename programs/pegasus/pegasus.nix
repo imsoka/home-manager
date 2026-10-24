@@ -126,6 +126,12 @@ let
     # Nombre antiguo de defaultWinePrefixDir, Heroic aún lo lee
     defaultWinePrefix = "/games/Heroic/Prefixes";
     winePrefix = "/games/Heroic/Prefixes/shared";
+    # Como los de Steam: gamescope a la resolución de la pantalla (ventana de
+    # 1920x1080 en el escritorio, la del cliente en Moonshine) y gamemoderun,
+    # que Heroic pone detrás de los wrappers. Sin él Wine abre el juego a
+    # 3440x1440 y steam-game-workspace encoge la ventana, no la resolución
+    wrapperOptions = [ { exe = "${config.home.profileDirectory}/bin/steam-gamescope"; args = "--"; } ];
+    useGameMode = true;
   };
 in {
   home.packages = [
