@@ -27,7 +27,8 @@ in {
     gcc          # game-launcher: "cc"
     xdg-utils    # game-launcher
     procps       # gamer-mode: pgrep, pkill; nvtop: pkill, kill
-    python3      # discord-voice: puente RPC; nvtop
+    # discord-voice: puente RPC; nvtop (sus gráficas usan Pillow)
+    (python3.withPackages (ps: [ ps.pillow ]))
     nvtopPackages.nvidia  # nvtop: monitor de GPU (con soporte NVIDIA)
     mangohud     # overlay de rendimiento para los juegos
   ];
