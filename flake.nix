@@ -44,6 +44,7 @@
           ./programs/steam/steam.nix
           ./programs/discord/discord.nix
           ./programs/pegasus/pegasus.nix
+          ./programs/soh/soh.nix
           ./programs/noctalia/wallpaper.nix
         ];
       };
