@@ -38,6 +38,10 @@ screenshot-path "~/Pictures/Screenshots/%Y-%m-%d_%H-%M-%S.png"
 spawn-at-startup "noctalia" "-d"
 spawn-at-startup "sh" "-c" "wl-paste --type text --watch cliphist store"
 spawn-at-startup "sh" "-c" "wl-paste --type image --watch cliphist store"
+// Carga los presets de Input Remapper marcados como autoload (macro del
+// G305). Le pasa al servicio la carpeta de config del usuario, que luego usan
+// las reglas udev al reconectar el ratón; niri no lanza el .desktop de autostart
+spawn-at-startup "input-remapper-control" "--command" "autoload"
 
 // La ventana de ajustes de Noctalia flota en vez de abrirse como columna
 window-rule {
