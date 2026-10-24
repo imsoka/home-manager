@@ -21,9 +21,9 @@ let
     # y no debe cambiar con cada generación
     text = ''
       steam_gamescope=${config.home.profileDirectory}/bin/steam-gamescope
-      # Comandos delante de las opciones de lanzamiento de juegos concretos.
-      # AION 2 abre su DPS meter (con-a2tools, en la config de NixOS)
-      game_prefixes=("3393110=/run/current-system/sw/bin/con-a2tools")
+      # Comandos delante de las opciones de lanzamiento de juegos concretos,
+      # como "<appid>=<comando>" (ver set-launch-options.py)
+      game_prefixes=()
     '' + builtins.readFile ./steam-proton-ge.sh;
   };
 

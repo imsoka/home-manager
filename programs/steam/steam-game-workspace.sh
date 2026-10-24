@@ -16,10 +16,9 @@ workspace_id() {
 
 # Mueve la ventana al workspace con ese nombre, creándolo al final si no existe,
 # y la enfoca salvo que se esté jugando (los diálogos de Steam que salen al
-# lanzar un juego no deben sacar del workspace "game") o que se pase
-# "nofocus" como tercer argumento
+# lanzar un juego no deben sacar del workspace "game")
 move_to_workspace() {
-  local id=$1 name=$2 nofocus=${3:-} last focused
+  local id=$1 name=$2 last focused
   focused=$(niri msg -j workspaces | jq -r '.[] | select(.is_focused) | .name // ""')
   if [[ -z "$(workspace_id "$name")" ]]; then
     last=$(niri msg -j workspaces | jq -r \
@@ -28,7 +27,6 @@ move_to_workspace() {
     niri msg action set-workspace-name --workspace "$last" "$name"
   fi
   niri msg action move-window-to-workspace --window-id "$id" --focus false "$name"
-  [[ -z "$nofocus" ]] || return 0
   if [[ "$name" == game || "$focused" != game ]]; then
     niri msg action focus-window --id "$id"
   fi
@@ -68,9 +66,6 @@ niri msg -j event-stream | while read -r event; do
     checked[$id]=1
     if [[ "$app_id" =~ ^(steam|steamwebhelper)$ ]]; then
       move_to_workspace "$id" steam
-    elif [[ "${app_id,,}" == *a2tools* ]]; then
-      # DPS meter de AION 2 (con-a2tools): con el juego, sin redimensionar
-      move_to_workspace "$id" game nofocus
     elif is_game "$app_id" "$pid"; then
       [[ "$floating" == true ]] || niri msg action move-window-to-floating --id "$id"
       move_to_workspace "$id" game
