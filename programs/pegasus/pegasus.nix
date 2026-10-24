@@ -164,6 +164,20 @@ in {
     tmp="$(mktemp)"
     ${pkgs.jq}/bin/jq '.defaultSettings += ${builtins.toJSON heroicPaths}' \
       "$config" > "$tmp" && run mv "$tmp" "$config"
+
+    # Por defecto Heroic coge el wine del sistema, que es solo de 32 bits y
+    # no abre los juegos de 64 bits ("Formato EXE erróneo"). Se le pone el
+    # GE-Proton más reciente del wrapper de steam, salvo que ya tenga un
+    # Proton que exista (elegido a mano en sus ajustes)
+    proton=$(ls -d "$HOME"/.local/share/Steam/compatibilitytools.d/GE-Proton*/ 2>/dev/null |
+      ${pkgs.coreutils}/bin/sort -V | tail -n1)
+    current=$(${pkgs.jq}/bin/jq -r 'if .defaultSettings.wineVersion.type == "proton"
+      then .defaultSettings.wineVersion.bin else "" end' "$config")
+    if [ -n "$proton" ] && [ -f "''${proton}proton" ] && ! [ -f "$current" ]; then
+      ${pkgs.jq}/bin/jq --arg dir "''${proton%/}" '.defaultSettings.wineVersion = {
+        bin: "\($dir)/proton", name: "Proton - \($dir | split("/") | last)",
+        type: "proton"}' "$config" > "$tmp" && run mv "$tmp" "$config"
+    fi
   '';
 
   systemd.user.services.pegasus-library = {
