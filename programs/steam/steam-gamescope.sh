@@ -5,6 +5,13 @@
 # en un stream de Moonshine, la del cliente de Moonlight (Steam se abre
 # dentro de la sesión del stream y los juegos heredan su entorno); en el
 # escritorio, 1920x1080 a 60 Hz.
+#
+# Solo pide pantalla completa (-f) en el stream, donde el juego tiene que
+# ocupar toda la pantalla del cliente. En el escritorio (3440x1440) va en una
+# ventana de 1920x1080 que coloca steam-game-workspace, en todos los juegos.
+#
+# Siempre con --mangoapp (MangoHud de gamescope), salvo que ya venga en las
+# opciones extra.
 
 # Desde Moonshine el PATH puede venir recortado; gamescope es el del sistema
 # (con el layout de teclado de programs.gamescope.env)
@@ -14,12 +21,21 @@ width="${MOONSHINE_CLIENT_WIDTH:-}"
 height="${MOONSHINE_CLIENT_HEIGHT:-}"
 fps="${MOONSHINE_CLIENT_FRAMERATE:-}"
 
+fullscreen=(-f)
 if [[ ! "$width" =~ ^[0-9]+$ || ! "$height" =~ ^[0-9]+$ ]]; then
   width=1920
   height=1080
+  fullscreen=()
 fi
 [[ "$fps" =~ ^[0-9]+$ && "$fps" -gt 0 ]] || fps=60
 # Por si llega en milihercios (59940)
 ((fps < 1000)) || fps=$(((fps + 500) / 1000))
 
-exec gamescope -W "$width" -H "$height" -r "$fps" -F fsr -f "$@"
+mangoapp=(--mangoapp)
+for arg in "$@"; do
+  [[ "$arg" != -- ]] || break
+  [[ "$arg" != --mangoapp ]] || mangoapp=()
+done
+
+exec gamescope -W "$width" -H "$height" -r "$fps" -F fsr "${fullscreen[@]}" \
+  "${mangoapp[@]}" "$@"

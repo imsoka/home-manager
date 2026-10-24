@@ -51,11 +51,14 @@ window-rule {
     open-floating true
 }
 
-// Juegos de Steam vía Proton (XWayland: WM_CLASS steam_app_<id>) flotan.
-// El servicio steam-game-workspace los lleva al workspace "game".
+// Juegos de Steam vía Proton (XWayland: WM_CLASS steam_app_<id>) flotan y
+// no se abren a pantalla completa aunque la pidan (los de gamescope no la
+// piden, ver steam-gamescope). El servicio steam-game-workspace los lleva al
+// workspace "game" a 1920x1080; Mod+F la pone a mano.
 window-rule {
     match app-id=r#"^steam_app_"#
     open-floating true
+    open-fullscreen false
 }
 
 // El DPS meter de AION 2 (A2Tools) flota, así queda encima del juego si se
