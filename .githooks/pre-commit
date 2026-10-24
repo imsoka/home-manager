@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# pre-commit: valida sintaxis y evaluación de Nix antes de commitear.
+# Activar tras clonar: git config core.hooksPath .githooks
+# Saltar en una emergencia: git commit --no-verify
+set -uo pipefail
+
+cd "$(git rev-parse --show-toplevel)" || exit 1
+
+mapfile -d '' staged < <(git diff --cached --name-only --diff-filter=ACM -z -- '*.nix')
+if [ ${#staged[@]} -eq 0 ]; then
+  exit 0
+fi
+
+fail=0
+err() { printf '\033[31mpre-commit: %s\033[0m\n' "$*" >&2; }
+
+# 1. Sintaxis: se parsea el contenido del índice (lo que se va a commitear), no el del árbol de trabajo.
+for f in "${staged[@]}"; do
+  if ! out=$(git show ":$f" | nix-instantiate --parse - 2>&1 >/dev/null); then
+    err "error de SINTAXIS en $f"
+    printf '%s\n' "$out" | sed "s|«stdin»|$f|" >&2
+    fail=1
+  fi
+done
+if [ $fail -ne 0 ]; then
+  err "commit rechazado: corrige la sintaxis de los ficheros anteriores."
+  exit 1
+fi
+
+# 2. Evaluación de todas las configuraciones del flake.
+# Nota: el flake evalúa el árbol de trabajo (ficheros rastreados), no exactamente el índice.
+eval_all() { # $1 = salida del flake, $2 = atributo que fuerza la evaluación completa
+  local names name out
+  if ! names=$(nix eval --json ".#$1" --apply builtins.attrNames 2>"$tmp"); then
+    if grep -q 'does not provide attribute' "$tmp"; then return 0; fi # el flake no tiene esa salida
+    err "error de EVALUACIÓN del flake al listar $1"
+    tail -n 25 "$tmp" >&2
+    fail=1
+    return
+  fi
+  names=$(tr -d '[]"' <<<"$names" | tr ',' ' ')
+  for name in $names; do
+    echo "pre-commit: evaluando $1.$name ..." >&2
+    if ! out=$(nix eval --raw ".#$1.\"$name\".$2" 2>&1 >/dev/null); then
+      err "error de EVALUACIÓN en $1.$name"
+      printf '%s\n' "$out" | tail -n 25 >&2
+      fail=1
+    fi
+  done
+}
+tmp=$(mktemp); trap 'rm -f "$tmp"' EXIT
+eval_all nixosConfigurations config.system.build.toplevel.drvPath
+eval_all homeConfigurations activationPackage.drvPath
+
+if [ $fail -ne 0 ]; then
+  err "commit rechazado: alguna configuración no evalúa (ver arriba)."
+  exit 1
+fi
+
+# Formato (nixfmt) desactivado: la mayoría de ficheros del repo no están formateados con nixfmt.
+exit 0

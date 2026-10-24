@@ -13,6 +13,9 @@ Configuración según `hostname`: `sokix` → `.#soka`, `sokix-work` → `.#soka
 1. Ficheros nuevos: `git add` antes del switch, o el flake no los ve.
 2. `home-manager switch --flake ~/.config/home-manager#<config>` (no requiere sudo; ejecútalo tú y comprueba el resultado).
 
+## Hook de pre-commit
+`.githooks/pre-commit` valida sintaxis y evaluación de todas las configs del flake; tras clonar actívalo con `git config core.hooksPath .githooks`.
+
 ## Commits (permiso permanente)
 Commitea cada cambio ya aplicado y comprobado: un commit por tema, mensaje `tema: descripción` en español (temas habituales: `niri`, `steam`, `pegasus`, `gtk`, `noctalia`). Añade solo los ficheros que has tocado tú en esta sesión; lo que ya estaba modificado al empezar viene de otra sesión o del usuario y se queda fuera.
 
