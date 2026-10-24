@@ -40,6 +40,7 @@
         modules = [
           ./home.nix
           ./programs/noctalia/gaming.nix
+          ./programs/noctalia/claude-sessions.nix
           ./programs/steam/steam.nix
           ./programs/discord/discord.nix
           ./programs/pegasus/pegasus.nix
