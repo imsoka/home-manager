@@ -94,7 +94,8 @@ let
   # (core/Uninstall.qml) y A dice "Install" en los no instalados
   # (core/Launch.qml) y las carátulas llevan el logo de la tienda en la
   # esquina superior izquierda (ui/CoverCard.qml; logos de Epic, GOG y Amazon
-  # de Simple Icons, como los del tema)
+  # de Simple Icons, como los del tema). El de NixOS (colección "Nativos")
+  # también es de Simple Icons, con el color de los demás.
   reprise = pkgs.applyPatches {
     name = "pegasus-theme-reprise";
     src = pkgs.fetchFromGitHub {
@@ -107,6 +108,7 @@ let
       ./reprise-platform-badge.patch ];
     postPatch = ''
       substituteInPlace core/Uninstall.qml --subst-var-by stateDir ${uninstallDir}
+      cp ${./nixos.svg} assets/platforms/nixos.svg
     '';
   };
 

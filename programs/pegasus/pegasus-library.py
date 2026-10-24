@@ -1,12 +1,15 @@
-# Genera la biblioteca de Pegasus a partir de Steam y Heroic, como los
-# plugins de biblioteca de Playnite: cada tienda junta lo instalado (archivos
-# locales) con todo lo comprado (online o caché del launcher).
+# Genera la biblioteca de Pegasus a partir de Steam, Heroic y los juegos
+# nativos, como los plugins de biblioteca de Playnite: cada tienda junta lo
+# instalado (archivos locales) con todo lo comprado (online o caché del
+# launcher).
 #
 # - Steam: appmanifest_*.acf de cada biblioteca + IPlayerService/GetOwnedGames
 #   (necesita API key en ~/.config/pegasus-library/steam-api-key; sin ella
 #   solo salen los instalados). Datos e imágenes de IStoreBrowseService.
 # - Heroic (Epic, GOG, Amazon, Zoom y juegos añadidos a mano): sus cachés en
 #   ~/.config/heroic, que ya tienen la biblioteca completa con imágenes.
+# - Nativos (ports de Linux sin tienda): un JSON por juego en
+#   ~/.config/pegasus-library/native, que escribe home-manager.
 #
 # El tiempo jugado sale de las tiendas y sustituye al que cuenta Pegasus en
 # stats.db: Pegasus lanza los juegos a través de Steam o Heroic, que son
@@ -37,6 +40,7 @@ from PIL import Image
 
 HOME = Path.home()
 CONFIG = HOME / ".config/pegasus-library"
+NATIVE = CONFIG / "native"
 DATA = HOME / ".local/share/pegasus-library"
 COLLECTIONS = DATA / "collections"
 MEDIA = DATA / "media"
@@ -89,11 +93,13 @@ HEROIC_STORES = {
     "zoom": ("store_cache/zoom_library.json", "games", "Zoom"),
     "sideload": ("sideload_apps/library.json", "games", "Otros"),
 }
-COLLECTION_ORDER = ["Steam", "Epic", "GOG", "Amazon", "Zoom", "Otros"]
+COLLECTION_ORDER = ["Steam", "Epic", "GOG", "Amazon", "Zoom", "Otros",
+                    "Nativos"]
 # shortname de la colección: el tema Reprise pone el icono
 # assets/platforms/<shortname>.svg; sin icono muestra el nombre
 SHORTNAMES = {
     "Steam": "steam", "Epic": "epic", "GOG": "gog", "Amazon": "amazon",
+    "Nativos": "nixos",
 }
 
 
@@ -552,6 +558,44 @@ def heroic_games():
     return games
 
 
+# --- Nativos --------------------------------------------------------------
+
+def native_games():
+    """Juegos de Linux sin tienda: un JSON por juego en NATIVE, que escribe
+    home-manager (id, title, launch y opcionalmente developers, publishers,
+    release, summary y assets: {tipo: ruta o URL})."""
+    games, plans = [], {}
+    for path in sorted(NATIVE.glob("*.json")):
+        info = read_json(path)
+        if not info or not info.get("launch"):
+            log(f"nativos: {path.name} sin launch, se ignora")
+            continue
+        game_id = info.get("id") or path.stem
+        idx = len(games)
+        # Pegasus lo lanza directamente y espera a que se cierre; el tiempo
+        # jugado lo cuenta él (playtime None: no se toca)
+        games.append(Game(
+            source="native",
+            id=game_id,
+            title=info.get("title") or game_id,
+            installed=True,
+            launch=info["launch"],
+            collection="Nativos",
+            developers=info.get("developers") or [],
+            publishers=info.get("publishers") or [],
+            release=info.get("release") or "",
+            summary=info.get("summary") or "",
+        ))
+        safe_id = re.sub(r"[^A-Za-z0-9._-]", "_", game_id)
+        for asset, src in (info.get("assets") or {}).items():
+            if asset in ASSET_SIZES and src:
+                source = src if src.startswith("http") else Path(src)
+                dest = MEDIA / "native" / safe_id / (asset + ".webp")
+                plans[(idx, asset)] = (dest, [source])
+    resolve_assets(games, plans)
+    return games
+
+
 # --- Salida para Pegasus --------------------------------------------------
 
 def clean(text):
@@ -650,7 +694,8 @@ def update_stats(games):
 
 def main():
     games = []
-    for name, plugin in (("steam", steam_games), ("heroic", heroic_games)):
+    for name, plugin in (("steam", steam_games), ("heroic", heroic_games),
+                         ("nativos", native_games)):
         try:
             found = plugin()
         except Exception as e:  # una tienda rota no tumba las demás
