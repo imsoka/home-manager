@@ -14,4 +14,12 @@ in {
   #   noctalia msg plugins enable ashur-d/wallpaper-widget
   xdg.configFile."noctalia/plugins/wallpaper-widget".source =
     "${communityPlugins}/wallpaper-widget";
+
+  # Plugin oficial de fondos de vídeo (noctalia/mpvpaper); mpv ya viene del sistema.
+  # ffmpeg saca el fotograma fijo y socat sincroniza el pase de vídeos.
+  home.packages = with pkgs; [
+    mpvpaper
+    ffmpeg
+    socat
+  ];
 }
