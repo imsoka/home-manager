@@ -10,6 +10,9 @@ local SERVICE = "vpn-rema"
 
 local attempting = false
 local launchedAt = 0
+-- Peticiones de 2FA ya respondidas: el log conserva el prompt hasta que sube el túnel,
+-- así que solo se vuelve a pedir el código si aparece un prompt nuevo (código erróneo).
+local otpAnswered = 0
 
 local function setState(patch)
   local s = noctalia.state.get(STATE) or {}
@@ -45,8 +48,15 @@ end
 
 local function fail(msg)
   attempting = false
+  otpAnswered = 0
   noctalia.removeFile(runtimeDir() .. "/pass")
-  setState({ busy = false, needOtp = false, message = msg })
+  setState({ busy = false, needOtp = false, verifying = false, message = msg })
+end
+
+local function countOtpPrompts(text)
+  local _, a = text:gsub("[Tt]oken:", "")
+  local _, b = text:gsub("[Oo]ne.?[Tt]ime", "")
+  return a + b
 end
 
 -- Lee el log del wrapper y deduce en qué punto está openfortivpn.
@@ -65,8 +75,10 @@ local function readLog()
     return "closed"
   elseif text:find("Tunnel is up", 1, true) then
     return "up"
-  elseif text:find("[Tt]oken:") or text:find("[Oo]ne.?[Tt]ime") then
+  elseif countOtpPrompts(text) > otpAnswered then
     return "otp"
+  elseif otpAnswered > 0 then
+    return "verifying"
   end
   return nil
 end
@@ -97,9 +109,11 @@ local function refreshConnected()
 
     if phase == "up" or (not attempting) then
       attempting = false
-      setState({ connected = true, needOtp = false, busy = false, message = "Conectada" })
+      otpAnswered = 0
+      setState({ connected = true, needOtp = false, busy = false, verifying = false, message = "Conectada" })
     elseif phase == "otp" then
-      setState({ connected = false, needOtp = true, busy = false, message = "Introduce el código 2FA del email" })
+      setState({ connected = false, needOtp = true, busy = false, verifying = false,
+        message = otpAnswered > 0 and "Código rechazado, introduce uno nuevo" or "Introduce el código 2FA del email" })
     elseif attempting and os.time() - launchedAt > 150 then
       fail("Sin respuesta de openfortivpn (mira /run/vpn-rema.log)")
     end
@@ -109,7 +123,8 @@ end
 local function launch(user)
   attempting = true
   launchedAt = os.time()
-  setState({ busy = true, needOtp = false, message = "Autentica para conectar…" })
+  otpAnswered = 0
+  setState({ busy = true, needOtp = false, verifying = false, message = "Autentica para conectar…" })
   noctalia.runAsync({ "pkexec", WRAPPER, "start", user }, function(r)
     if r.exitCode ~= 0 then
       local err = (r.stderr or ""):gsub("%s+$", ""):match("([^\n]*)$") or ""
@@ -159,7 +174,9 @@ end
 local function sendOtp(code)
   if not code or code == "" then return end
   writeSecret("otp", code, function(ok)
-    if ok then setState({ needOtp = false, message = "Código enviado" }) end
+    if not ok then return end
+    otpAnswered = countOtpPrompts(noctalia.readFile(LOG) or "")
+    setState({ needOtp = false, busy = true, verifying = true, message = "Código enviado" })
   end)
 end
 

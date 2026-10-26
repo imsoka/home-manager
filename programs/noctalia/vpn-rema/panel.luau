@@ -49,8 +49,16 @@ local function render()
     onSubmit = function() dispatch("check", { user = user }) end,
   })
 
+  -- Tras enviar el 2FA no hay nada que tocar: solo se indica que está conectando.
+  if s.verifying and not s.connected then
+    children[#children + 1] = ui.row({ gap = 8, align = "center" }, {
+      ui.glyph({ name = "loader-2", size = 16, color = "secondary" }),
+      ui.label({ text = "Verificando el código 2FA…", fontSize = 12, color = "on_surface_variant" }),
+    })
+  end
+
   -- Mientras conecta, los campos y el botón siguen visibles pero deshabilitados.
-  if not s.needOtp and not s.connected then
+  if not s.needOtp and not s.connected and not s.verifying then
     children[#children + 1] = ui.input({
       value = password,
       password = true,
