@@ -1,0 +1,28 @@
+-- Claude Code integrado: abre `claude` en un panel lateral y le da acceso al buffer,
+-- la selección y los diagnósticos. Los cambios que propone aparecen como diff.
+require("claudecode").setup({
+  terminal = {
+    provider = "snacks",
+    split_side = "right",
+    split_width_percentage = 0.4,
+  },
+})
+
+local map = vim.keymap.set
+map("n", "<leader>ac", "<cmd>ClaudeCode<cr>", { desc = "Abrir/cerrar Claude" })
+map("n", "<leader>af", "<cmd>ClaudeCodeFocus<cr>", { desc = "Ir a Claude" })
+map("n", "<leader>ar", "<cmd>ClaudeCode --resume<cr>", { desc = "Retomar una sesión" })
+map("n", "<leader>aC", "<cmd>ClaudeCode --continue<cr>", { desc = "Continuar la última sesión" })
+map("n", "<leader>am", "<cmd>ClaudeCodeSelectModel<cr>", { desc = "Elegir modelo" })
+map("n", "<leader>ab", "<cmd>ClaudeCodeAdd %<cr>", { desc = "Añadir el buffer actual" })
+map("v", "<leader>as", "<cmd>ClaudeCodeSend<cr>", { desc = "Enviar selección a Claude" })
+map("n", "<leader>aa", "<cmd>ClaudeCodeDiffAccept<cr>", { desc = "Aceptar diff" })
+map("n", "<leader>ad", "<cmd>ClaudeCodeDiffDeny<cr>", { desc = "Rechazar diff" })
+
+-- Desde oil o el explorador, <leader>as añade el archivo bajo el cursor
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = { "oil", "snacks_picker_list" },
+  callback = function(args)
+    map("n", "<leader>as", "<cmd>ClaudeCodeTreeAdd<cr>", { buffer = args.buf, desc = "Añadir archivo a Claude" })
+  end,
+})

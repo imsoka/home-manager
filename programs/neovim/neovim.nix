@@ -3,12 +3,10 @@
 {
   nixpkgs.config.allowUnfree = true;
 
-  programs.neovim =
-  let
-    toLua = str: "lua << EOF\n${str}\nEOF\n";
-    toLuaFile = file: "lua << EOF\n${builtins.readFile file}\nEOF\n";
-  in
-  {
+  # La config Lua vive en ./lua y se enlaza en ~/.config/nvim/lua; init.lua solo la carga.
+  xdg.configFile."nvim/lua".source = ./lua;
+
+  programs.neovim = {
     enable = true;
     defaultEditor = true;
 
@@ -16,53 +14,82 @@
     vimAlias = true;
     vimdiffAlias = true;
 
-    # Mantiene los valores que ya usaba la configuración por defecto.
-    withRuby = true;
-    withPython3 = true;
+    withRuby = false;
+    withPython3 = false;
 
+    # Binarios visibles solo para Neovim: LSPs, formateadores y herramientas de los plugins.
     extraPackages = with pkgs; [
-      intelephense
+      # LSPs
       lua-language-server
       nixd
       gopls
+      go # gopls lo necesita para localizar el módulo y la caché
+      intelephense
+      vtsls
+      vue-language-server
+      tailwindcss-language-server
+      vscode-langservers-extracted # html, cssls, jsonls, eslint
+      emmet-language-server
+      astro-language-server
+      yaml-language-server
+      basedpyright
+      ruff
+      dockerfile-language-server
+      docker-compose-language-service
+
+      # Formateadores (conform.nvim)
+      prettierd
+      stylua
+      nixfmt
+      gofumpt
+
+      # Herramientas
+      ripgrep
+      fd
+      lazygit
     ];
 
     initLua = ''
-      ${builtins.readFile ./lua/options.lua}
-
-      -- LSP Servers
-      ${builtins.readFile ./lua/lsp/lua_ls.lua}
-      ${builtins.readFile ./lua/lsp/intelephense.lua}
-      ${builtins.readFile ./lua/lsp/nixd.lua}
-      ${builtins.readFile ./lua/lsp/gopls.lua}
+      require("config")
     '';
 
     plugins = with pkgs.vimPlugins; [
-      {
-        plugin = gruvbox-nvim;
-        type = "viml";
-        config = "colorscheme gruvbox";
-      }
+      gruvbox-nvim
 
-      {
-        plugin = nvim-lspconfig;
-        config = "";
-      }
+      # LSP y completado
+      nvim-lspconfig
+      SchemaStore-nvim
+      lazydev-nvim
+      blink-cmp
+      friendly-snippets
+      conform-nvim
 
-      luasnip
+      # Treesitter (solo las gramáticas que usas)
+      (nvim-treesitter.withPlugins (p: with p; [
+        php php_only phpdoc blade twig
+        javascript typescript tsx jsdoc vue astro
+        html css scss json yaml toml xml
+        go gomod gosum
+        nix lua luadoc python bash
+        markdown markdown_inline
+        dockerfile sql regex diff
+        gitcommit git_rebase gitignore
+        kdl make vim vimdoc query
+      ]))
+      nvim-treesitter-textobjects
+      nvim-ts-autotag
 
-      cmp-nvim-lsp
-      cmp-buffer
-      cmp-path
-      cmp-cmdline
+      # Interfaz
+      snacks-nvim
+      oil-nvim
+      mini-nvim
+      which-key-nvim
 
-      {
-        plugin = nvim-cmp;
-        type = "viml";
-        config = toLuaFile ./lua/plugins/nvim-cmp.lua;
-      }
+      # Git
+      gitsigns-nvim
 
-      git-blame-nvim
+      # Claude Code
+      claudecode-nvim
     ];
   };
 }
