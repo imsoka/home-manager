@@ -169,7 +169,7 @@ in {
     # no abre los juegos de 64 bits ("Formato EXE erróneo"). Se le pone el
     # GE-Proton más reciente del wrapper de steam, salvo que ya tenga un
     # Proton que exista (elegido a mano en sus ajustes)
-    proton=$(ls -d "$HOME"/.local/share/Steam/compatibilitytools.d/GE-Proton*/ 2>/dev/null |
+    proton=$(ls -d /games/compatibilitytools/GE-Proton*/ 2>/dev/null |
       ${pkgs.coreutils}/bin/sort -V | tail -n1)
     current=$(${pkgs.jq}/bin/jq -r 'if .defaultSettings.wineVersion.type == "proton"
       then .defaultSettings.wineVersion.bin else "" end' "$config")

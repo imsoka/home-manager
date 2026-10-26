@@ -4,7 +4,8 @@
 # Cualquier fallo (sin red, GitHub caído...) no impide abrir Steam.
 
 steam_root="$HOME/.local/share/Steam"
-compat_dir="$steam_root/compatibilitytools.d"
+# Fuera de home: la misma ruta que STEAM_EXTRA_COMPAT_TOOLS_PATHS en NixOS
+compat_dir=/games/compatibilitytools
 config_vdf="$steam_root/config/config.vdf"
 real_steam=/run/current-system/sw/bin/steam
 
