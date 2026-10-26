@@ -86,6 +86,20 @@ window-rule {
     open-floating true
 }
 
+// Barra de dictado de Typeless (XWayland): overlay transparente que niri
+// rellenaba con el color del borde, tapando la ventana de login. Sin borde ni
+// fondo, sin robar el foco y abajo del todo para no tapar nada
+window-rule {
+    match app-id=r#"^Typeless-floating-bar$"#
+    open-floating true
+    open-focused false
+    draw-border-with-background false
+    focus-ring { off; }
+    border { off; }
+    shadow { off; }
+    default-floating-position x=0 y=0 relative-to="bottom"
+}
+
 binds {
     Mod+Return { spawn "alacritty"; }
     Mod+D { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
