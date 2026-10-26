@@ -101,7 +101,7 @@ window-rule {
 }
 
 binds {
-    Mod+Return { spawn "alacritty"; }
+    Mod+Return { spawn "kitty"; }
     Mod+D { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
     Mod+Ctrl+L { spawn "noctalia" "msg" "session" "lock"; }
     Mod+Shift+Q { close-window; }
