@@ -8,9 +8,14 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    ratatidy = {
+      # Temporal hasta mergear la PR #1: vuelve a "github:albert-araque/ratatidy"
+      url = "git+file:///home/soka/projects/personal/ratatidy";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { nixpkgs, home-manager, ... }:
+  outputs = { nixpkgs, home-manager, ratatidy, ... }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
@@ -54,9 +59,10 @@
       # Personal: home-manager switch --flake .#soka
       homeConfigurations."soka" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
-        extraSpecialArgs = { fingerprintPatch = false; };
+        extraSpecialArgs = { fingerprintPatch = false; inherit ratatidy; };
         modules = [
           ./home.nix
+          ./programs/ratatidy/ratatidy.nix
           ./programs/noctalia/gaming.nix
           ./programs/steam/steam.nix
           ./programs/discord/discord.nix

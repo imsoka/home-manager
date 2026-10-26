@@ -36,10 +36,31 @@
         "type": "github"
       }
     },
+    "ratatidy": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1793054333,
+        "narHash": "sha256-uS5sflNg+DzAP4uqtIzHLeiJpm+EaNwYDsMMLK08BsQ=",
+        "ref": "refs/heads/feat/remote-transfer",
+        "rev": "b7985f51f8c69131d8fc08b849dc92ee3f59f936",
+        "revCount": 16,
+        "type": "git",
+        "url": "file:///home/soka/projects/personal/ratatidy"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:///home/soka/projects/personal/ratatidy"
+      }
+    },
     "root": {
       "inputs": {
         "home-manager": "home-manager",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "ratatidy": "ratatidy"
       }
     }
   },
