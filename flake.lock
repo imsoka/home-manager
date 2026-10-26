@@ -43,17 +43,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1793054333,
-        "narHash": "sha256-uS5sflNg+DzAP4uqtIzHLeiJpm+EaNwYDsMMLK08BsQ=",
-        "ref": "refs/heads/feat/remote-transfer",
-        "rev": "b7985f51f8c69131d8fc08b849dc92ee3f59f936",
-        "revCount": 16,
-        "type": "git",
-        "url": "file:///home/soka/projects/personal/ratatidy"
+        "lastModified": 1793058502,
+        "narHash": "sha256-GIixGS8/bV2ppXl+C7mHPZeqNHyR7U2RBlJmzGvilFI=",
+        "owner": "albert-araque",
+        "repo": "ratatidy",
+        "rev": "c97bf4033118c8c7ab71c4889fdf430f935e88f7",
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "file:///home/soka/projects/personal/ratatidy"
+        "owner": "albert-araque",
+        "repo": "ratatidy",
+        "type": "github"
       }
     },
     "root": {

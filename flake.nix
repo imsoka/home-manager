@@ -9,8 +9,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     ratatidy = {
-      # Temporal hasta mergear la PR #1: vuelve a "github:albert-araque/ratatidy"
-      url = "git+file:///home/soka/projects/personal/ratatidy";
+      url = "github:albert-araque/ratatidy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
