@@ -1,0 +1,8 @@
+{
+  "settings": {
+    "warn_percent":     { "label": "Warning threshold (%)",  "description": "Below this percentage, while discharging, the full-screen alert appears." },
+    "critical_percent": { "label": "Critical threshold (%)", "description": "Below this percentage the alarm sounds continuously and can only be snoozed for 1 minute." },
+    "snooze_minutes":   { "label": "Snooze (minutes)",       "description": "How long until the alert returns after pressing Snooze at the low level." },
+    "sound":            { "label": "Alarm sound",            "description": "Play a beep while the alert is on screen." }
+  }
+}

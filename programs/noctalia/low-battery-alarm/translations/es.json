@@ -1,0 +1,8 @@
+{
+  "settings": {
+    "warn_percent":     { "label": "Umbral de aviso (%)",   "description": "Por debajo de este porcentaje, y descargando, aparece la alerta a pantalla completa." },
+    "critical_percent": { "label": "Umbral crítico (%)",     "description": "Por debajo de este porcentaje la alarma suena sin parar y solo se puede posponer 1 minuto." },
+    "snooze_minutes":   { "label": "Posponer (minutos)",     "description": "Cuánto tarda en volver la alerta tras pulsar «Posponer» en nivel bajo." },
+    "sound":            { "label": "Alarma sonora",          "description": "Reproducir un pitido mientras la alerta está en pantalla." }
+  }
+}

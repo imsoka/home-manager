@@ -1,0 +1,68 @@
+id          = "soka/low-battery-alarm"
+name        = "Alarma de batería baja"
+version     = "0.1.0"
+plugin_api  = 32
+author      = "soka"
+license     = "MIT"
+icon        = "battery-1"
+description = "Alerta a pantalla completa, parpadeante y con alarma sonora cuando la batería se está agotando."
+tags        = ["service", "panel", "system"]
+dependencies = ["pw-play"]
+
+[[setting]]
+key             = "warn_percent"
+type            = "int"
+label_key       = "settings.warn_percent.label"
+description_key = "settings.warn_percent.description"
+default         = 15
+min             = 5
+max             = 50
+step            = 1
+
+[[setting]]
+key             = "critical_percent"
+type            = "int"
+label_key       = "settings.critical_percent.label"
+description_key = "settings.critical_percent.description"
+default         = 7
+min             = 2
+max             = 30
+step            = 1
+
+[[setting]]
+key             = "snooze_minutes"
+type            = "int"
+label_key       = "settings.snooze_minutes.label"
+description_key = "settings.snooze_minutes.description"
+default         = 3
+min             = 1
+max             = 30
+step            = 1
+
+[[setting]]
+key             = "sound"
+type            = "bool"
+label_key       = "settings.sound.label"
+description_key = "settings.sound.description"
+default         = false
+
+# Panel a pantalla completa en la capa overlay (por encima de todo, también de
+# ventanas a pantalla completa). Persistente: no se cierra al abrir otro panel ni
+# al hacer clic fuera. Sin foco de teclado, para que se pueda seguir guardando
+# a ciegas (Ctrl+S) con la alerta encima.
+[[panel]]
+id                       = "alert"
+entry                    = "alert.luau"
+width                    = "fill"
+height                   = "fill"
+placement                = "floating"
+position                 = "center"
+open_near_click          = false
+layer                    = "overlay"
+keyboard_focus           = "none"
+dismiss_on_outside_click = false
+persistent               = true
+
+[[service]]
+id    = "watcher"
+entry = "service.luau"
