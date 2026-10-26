@@ -14,7 +14,25 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+      # Lanza un navegador con un perfil temporal que se borra al cerrarlo
+      mkTestBrowser = name: profileArgs: pkgs.writeShellScriptBin "test-${name}" ''
+        profile=$(mktemp -d -t "test-${name}.XXXXXX")
+        trap 'rm -rf "$profile"' EXIT
+        ${profileArgs} "$@"
+      '';
     in {
+      # Testeo manual de webs: nix develop ~/.config/home-manager#browsers
+      devShells.${system}.browsers = pkgs.mkShell {
+        packages = [
+          (mkTestBrowser "firefox" ''${pkgs.firefox}/bin/firefox --no-remote --profile "$profile"'')
+          (mkTestBrowser "chromium" ''${pkgs.chromium}/bin/chromium --user-data-dir="$profile" --no-first-run --no-default-browser-check'')
+          (mkTestBrowser "epiphany" ''${pkgs.epiphany}/bin/epiphany --profile="$profile"'')
+        ];
+        shellHook = ''
+          echo "Navegadores de testeo (perfil temporal): test-firefox, test-chromium, test-epiphany <url>"
+        '';
+      };
+
       # Trabajo: home-manager switch --flake .#soka-work
       homeConfigurations."soka-work" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
