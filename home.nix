@@ -4,6 +4,8 @@
 {
   imports = [
     ./programs/neovim/neovim.nix
+    ./programs/kitty/kitty.nix
+    ./programs/noctalia/claude-sessions.nix
     ./programs/codex/codex.nix
     ./programs/gtk/gtk.nix
     ./window-managers/i3/i3.nix
