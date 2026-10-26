@@ -1,8 +1,18 @@
 { config, pkgs, ... }:
 
 {
+  # Nerd Font: los iconos de Neovim (mini.icons, diagnósticos, git) salen de aquí.
+  # fontconfig hace que las fuentes de home-manager estén visibles para todas las apps.
+  fonts.fontconfig.enable = true;
+  home.packages = [ pkgs.nerd-fonts.sauce-code-pro ];
+
   programs.kitty = {
     enable = true;
+
+    font = {
+      name = "SauceCodePro Nerd Font";
+      size = 11;
+    };
 
     settings = {
       # Control remoto por socket: el plugin claude-sessions de Noctalia lo usa para
