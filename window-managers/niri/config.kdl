@@ -56,8 +56,8 @@ window-rule {
 window-rule {
     match app-id=r#"^io\.github\.xiaoyifang\.goldendict_ng$"# title=r#"^GoldenDict-ng$"#
     open-floating true
-    default-column-width { fixed 420; }
-    default-window-height { fixed 260; }
+    default-column-width { fixed 520; }
+    default-window-height { fixed 420; }
 }
 
 // KeePassXC flota (app-id "org.keepassxc.KeePassXC" en Wayland, "keepassxc" vía X11)
