@@ -38,6 +38,8 @@ screenshot-path "~/Pictures/Screenshots/%Y-%m-%d_%H-%M-%S.png"
 spawn-at-startup "noctalia" "-d"
 spawn-at-startup "sh" "-c" "wl-paste --type text --watch cliphist store"
 spawn-at-startup "sh" "-c" "wl-paste --type image --watch cliphist store"
+// GoldenDict-ng en la bandeja, para que Mod+Y abra su ventanita al momento
+spawn-at-startup "goldendict"
 // Carga los presets de Input Remapper marcados como autoload (macro del
 // G305). Le pasa al servicio la carpeta de config del usuario, que luego usan
 // las reglas udev al reconectar el ratón; niri no lanza el .desktop de autostart
@@ -47,6 +49,15 @@ spawn-at-startup "input-remapper-control" "--command" "autoload"
 window-rule {
     match app-id=r#"^dev\.noctalia\.Noctalia$"#
     open-floating true
+}
+
+// Ventanita de GoldenDict-ng (Mod+Y): flota y pequeña. La principal se
+// titula "<palabra> - GoldenDict-ng"
+window-rule {
+    match app-id=r#"^io\.github\.xiaoyifang\.goldendict_ng$"# title=r#"^GoldenDict-ng$"#
+    open-floating true
+    default-column-width { fixed 420; }
+    default-window-height { fixed 260; }
 }
 
 // KeePassXC flota (app-id "org.keepassxc.KeePassXC" en Wayland, "keepassxc" vía X11)
@@ -103,6 +114,8 @@ window-rule {
 binds {
     Mod+Return { spawn "kitty"; }
     Mod+D { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
+    // Romaji y lectura del texto seleccionado en la ventanita de GoldenDict-ng
+    Mod+Y { spawn "sh" "-c" "goldendict --popup \"$(wl-paste --primary --no-newline)\""; }
     Mod+Ctrl+L { spawn "noctalia" "msg" "session" "lock"; }
     Mod+Shift+Q { close-window; }
     Mod+Shift+E { quit; }
