@@ -1,6 +1,9 @@
 -- snacks.nvim: buscador, explorador, terminal, lazygit, notificaciones y guías de indentación
 local Snacks = require("snacks")
 
+-- lazygit escribe su tema en stdpath("cache") sin crear el directorio: si falta, falla con E482
+vim.fn.mkdir(vim.fn.stdpath("cache"), "p")
+
 Snacks.setup({
   bigfile = { enabled = true },
   quickfile = { enabled = true },
@@ -13,6 +16,29 @@ Snacks.setup({
   terminal = { enabled = true },
   -- oil se encarga de abrir directorios; el explorador solo se abre con <leader>e
   explorer = { enabled = true, replace_netrw = false },
+  styles = {
+    terminal = {
+      keys = {
+        -- El doble Esc de serie usa stopinsert, que en nvim 0.12 no saca del modo terminal,
+        -- y solo da 200 ms entre pulsaciones: aquí 500
+        term_normal = {
+          "<esc>",
+          function(self)
+            self.esc_timer = self.esc_timer or vim.uv.new_timer()
+            if self.esc_timer:is_active() then
+              self.esc_timer:stop()
+              return "<C-\\><C-n>"
+            end
+            self.esc_timer:start(500, 0, function() end)
+            return "<esc>"
+          end,
+          mode = "t",
+          expr = true,
+          desc = "Doble Esc: modo normal",
+        },
+      },
+    },
+  },
 })
 
 local map = vim.keymap.set
