@@ -12,5 +12,6 @@ wk.add({
   { "<leader>h", group = "Cambios (hunks)" },
   { "<leader>s", group = "Buscar" },
   { "<leader>x", group = "Listas" },
+  { "<leader>t", group = "Terminal" },
   { "gr", group = "LSP" },
 })
