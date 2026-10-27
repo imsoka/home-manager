@@ -10,6 +10,7 @@
     ./programs/gtk/gtk.nix
     ./window-managers/i3/i3.nix
     ./programs/keepassxc/keepassxc.nix
+    ./programs/goldendict/goldendict.nix
     ./programs/learnharness/learnharness.nix
     ./window-managers/niri/niri.nix
   ];
