@@ -10,6 +10,11 @@ map("n", "<C-h>", "<C-w>h", { desc = "Ventana izquierda" })
 map("n", "<C-j>", "<C-w>j", { desc = "Ventana abajo" })
 map("n", "<C-k>", "<C-w>k", { desc = "Ventana arriba" })
 map("n", "<C-l>", "<C-w>l", { desc = "Ventana derecha" })
+-- También desde terminales (Claude, snacks), sin pasar por Esc; dentro de ellas se pierden C-j/C-k/C-l
+map("t", "<C-h>", "<cmd>wincmd h<cr>", { desc = "Ventana izquierda" })
+map("t", "<C-j>", "<cmd>wincmd j<cr>", { desc = "Ventana abajo" })
+map("t", "<C-k>", "<cmd>wincmd k<cr>", { desc = "Ventana arriba" })
+map("t", "<C-l>", "<cmd>wincmd l<cr>", { desc = "Ventana derecha" })
 
 -- Buffers
 map("n", "<S-h>", "<cmd>bprevious<cr>", { desc = "Buffer anterior" })
