@@ -5,6 +5,9 @@ require("oil").setup({
   skip_confirm_for_simple_edits = true,
   keymaps = {
     ["q"] = "actions.close",
+    -- Libres para cambiar de ventana (keymaps.lua)
+    ["<C-h>"] = false,
+    ["<C-l>"] = false,
   },
 })
 
