@@ -44,7 +44,7 @@ map("n", "[[", function() Snacks.words.jump(-vim.v.count1) end, { desc = "Refere
 map("n", "<leader>e", function() Snacks.explorer() end, { desc = "Explorador (árbol)" })
 map("n", "<leader>bd", function() Snacks.bufdelete() end, { desc = "Cerrar buffer" })
 map("n", "<leader>bo", function() Snacks.bufdelete.other() end, { desc = "Cerrar los demás buffers" })
-map("n", "<leader>tt", function() Snacks.terminal() end, { desc = "Terminal" })
+map("n", "<leader>tt", function() Snacks.terminal(nil, { win = { position = "float" } }) end, { desc = "Terminal" })
 
 -- Git
 map("n", "<leader>gg", function() Snacks.lazygit() end, { desc = "Lazygit" })
