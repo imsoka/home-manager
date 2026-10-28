@@ -10,6 +10,8 @@ Snacks.setup({
   input = { enabled = true },
   notifier = { enabled = true },
   indent = { enabled = true },
+  -- imágenes en buffers (kitty/ghostty/wezterm); convierte con ImageMagick
+  image = { enabled = true },
   words = { enabled = true },
   picker = { enabled = true },
   lazygit = { enabled = true },
