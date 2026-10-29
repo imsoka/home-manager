@@ -33,7 +33,7 @@ layout {
 
 prefer-no-csd
 
-screenshot-path "~/Pictures/Screenshots/%Y-%m-%d_%H-%M-%S.png"
+screenshot-path "~/Imágenes/Screenshots/%Y-%m-%d_%H-%M-%S.png"
 
 spawn-at-startup "noctalia" "-d"
 spawn-at-startup "sh" "-c" "wl-paste --type text --watch cliphist store"
