@@ -22,7 +22,9 @@ in
 {
   home.packages = [
     (pkgs.appimageTools.wrapAppImage {
-      inherit pname version src;
+      # wrapAppImage espera el AppImage ya extraído (appimage-exec.sh -w)
+      inherit pname version;
+      src = contents;
       # Lanzador e icono del propio AppImage, con Exec apuntando al binario envuelto
       extraInstallCommands = ''
         install -Dm444 ${contents}/learnharness.desktop -t $out/share/applications
