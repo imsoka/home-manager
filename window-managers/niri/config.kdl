@@ -66,6 +66,13 @@ window-rule {
     open-floating true
 }
 
+// La ventana de transferencia de Thunar (copiar/mover) flota; la ventana
+// principal de Thunar ("<carpeta> - Thunar") sigue en mosaico
+window-rule {
+    match app-id=r#"^thunar$"# title=r#"^(Copiando archivos|Copying files|Moving files)"#
+    open-floating true
+}
+
 // Juegos de Steam vía Proton (XWayland: WM_CLASS steam_app_<id>) flotan y
 // no se abren a pantalla completa aunque la pidan (los de gamescope no la
 // piden, ver steam-gamescope). El servicio steam-game-workspace los lleva al
