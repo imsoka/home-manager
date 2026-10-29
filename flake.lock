@@ -20,6 +20,18 @@
         "type": "github"
       }
     },
+    "learnharness-release": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-QgUfQE5jvTRB/1sLjvFROAbFy/oTA9LB1yH1xvfhu7k=",
+        "type": "file",
+        "url": "https://api.github.com/repos/amosblomqvist/learnharness/releases/latest"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://api.github.com/repos/amosblomqvist/learnharness/releases/latest"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1793110635,
@@ -59,6 +71,7 @@
     "root": {
       "inputs": {
         "home-manager": "home-manager",
+        "learnharness-release": "learnharness-release",
         "nixpkgs": "nixpkgs",
         "ratatidy": "ratatidy"
       }

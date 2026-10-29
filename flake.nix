@@ -12,12 +12,19 @@
       url = "github:albert-araque/ratatidy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Metadatos de la última release de LearnHarness (versión y AppImage con su
+    # sha256). `nix flake update learnharness-release` la refresca.
+    learnharness-release = {
+      url = "file+https://api.github.com/repos/amosblomqvist/learnharness/releases/latest";
+      flake = false;
+    };
   };
 
-  outputs = { nixpkgs, home-manager, ratatidy, ... }:
+  outputs = { nixpkgs, home-manager, ratatidy, learnharness-release, ... }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+      learnharnessRelease = learnharness-release;
       # Lanza un navegador con un perfil temporal que se borra al cerrarlo
       mkTestBrowser = name: profileArgs: pkgs.writeShellScriptBin "test-${name}" ''
         profile=$(mktemp -d -t "test-${name}.XXXXXX")
@@ -44,7 +51,7 @@
         # Specify your home configuration modules here, for example,
         # the path to your home.nix.
         # noctalia.nix (plugin de batería) y parche de huella solo en el portátil
-        extraSpecialArgs = { fingerprintPatch = true; };
+        extraSpecialArgs = { fingerprintPatch = true; inherit learnharnessRelease; };
         modules = [
           ./home.nix
           ./programs/noctalia/noctalia.nix
@@ -58,7 +65,7 @@
       # Personal: home-manager switch --flake .#soka
       homeConfigurations."soka" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
-        extraSpecialArgs = { fingerprintPatch = false; inherit ratatidy; };
+        extraSpecialArgs = { fingerprintPatch = false; inherit ratatidy learnharnessRelease; };
         modules = [
           ./home.nix
           ./programs/ratatidy/ratatidy.nix
