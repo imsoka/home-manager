@@ -10,8 +10,9 @@
 #   ~/.config/heroic, que ya tienen la biblioteca completa con imágenes.
 # - Nativos (ports de Linux sin tienda): un JSON por juego en
 #   ~/.config/pegasus-library/native, que escribe home-manager.
-# - Eglantine (emulador de Switch): cada título de SWITCH_GAMES, con
-#   subcarpetas, se abre con `eglantine -g <archivo>`.
+# - Eglantine (emulador de Switch): cada archivo de SWITCH_GAMES (con
+#   subcarpetas) y cada carpeta extraída con base/ se abre con
+#   `eglantine -g <ruta>`.
 #
 # El tiempo jugado sale de las tiendas y sustituye al que cuenta Pegasus en
 # stats.db: Pegasus lanza los juegos a través de Steam o Heroic, que son
@@ -606,18 +607,22 @@ def native_games():
 
 def eglantine_games():
     """Títulos de Switch en SWITCH_GAMES (con subcarpetas). Eglantine no
-    tiene biblioteca que leer, así que cada archivo es un juego."""
+    tiene biblioteca que leer, así que cada archivo es un juego. Las
+    carpetas extraídas (base/ con exefs y romfs) también lo son: se
+    nombran por la carpeta y no se baja a sus subcarpetas."""
     if not SWITCH_GAMES.is_dir():
         return []
+    paths = [p for p in sorted(SWITCH_GAMES.rglob("*"))
+             if p.suffix.lower() in SWITCH_EXTS and p.is_file()]
+    paths += [p for p in sorted(SWITCH_GAMES.iterdir())
+              if (p / "base").is_dir()]
     games = []
-    for path in sorted(SWITCH_GAMES.rglob("*")):
-        if path.suffix.lower() not in SWITCH_EXTS or not path.is_file():
-            continue
+    for path in paths:
         rel = path.relative_to(SWITCH_GAMES)
         games.append(Game(
             source="eglantine",
             id=str(rel),
-            title=path.stem,
+            title=path.stem if path.is_file() else path.name,
             installed=True,
             launch=f"{EGLANTINE_CMD} -g {shlex.quote(str(path))}",
             collection="Eglantine",
