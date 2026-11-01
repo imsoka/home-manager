@@ -11,8 +11,8 @@
 # - Nativos (ports de Linux sin tienda): un JSON por juego en
 #   ~/.config/pegasus-library/native, que escribe home-manager.
 # - Eglantine (emulador de Switch): cada archivo de SWITCH_GAMES (con
-#   subcarpetas) y cada carpeta extraída con base/ se abre con
-#   `eglantine -g <ruta>`.
+#   subcarpetas) y cada carpeta extraída con base/exefs se abre a pantalla
+#   completa con `eglantine -f -g <ruta>`.
 #
 # El tiempo jugado sale de las tiendas y sustituye al que cuenta Pegasus en
 # stats.db: Pegasus lanza los juegos a través de Steam o Heroic, que son
@@ -631,7 +631,7 @@ def eglantine_games():
             id=str(rel),
             title=path.stem if path.is_file() else path.name,
             installed=True,
-            launch=f"{EGLANTINE_CMD} -g {shlex.quote(str(target))}",
+            launch=f"{EGLANTINE_CMD} -f -g {shlex.quote(str(target))}",
             collection="Eglantine",
         ))
         safe_id = re.sub(r"[^A-Za-z0-9._-]", "_", str(rel))
