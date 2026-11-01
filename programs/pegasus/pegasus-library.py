@@ -106,7 +106,7 @@ COLLECTION_ORDER = ["Steam", "Epic", "GOG", "Amazon", "Zoom", "Otros",
 # assets/platforms/<shortname>.svg; sin icono muestra el nombre
 SHORTNAMES = {
     "Steam": "steam", "Epic": "epic", "GOG": "gog", "Amazon": "amazon",
-    "Nativos": "nixos",
+    "Nativos": "nixos", "Eglantine": "switch",
 }
 
 
