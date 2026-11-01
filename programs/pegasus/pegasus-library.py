@@ -623,12 +623,15 @@ def eglantine_games():
     for path in paths:
         rel = path.relative_to(SWITCH_GAMES)
         idx = len(games)
+        # Eglantine carga las carpetas extraídas desde base/ (la que tiene
+        # exefs y romfs), no desde la del juego
+        target = path / "base" if path.is_dir() else path
         games.append(Game(
             source="eglantine",
             id=str(rel),
             title=path.stem if path.is_file() else path.name,
             installed=True,
-            launch=f"{EGLANTINE_CMD} -g {shlex.quote(str(path))}",
+            launch=f"{EGLANTINE_CMD} -g {shlex.quote(str(target))}",
             collection="Eglantine",
         ))
         safe_id = re.sub(r"[^A-Za-z0-9._-]", "_", str(rel))
