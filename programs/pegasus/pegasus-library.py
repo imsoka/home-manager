@@ -618,14 +618,14 @@ def eglantine_games():
     paths = [p for p in sorted(SWITCH_GAMES.rglob("*"))
              if p.suffix.lower() in SWITCH_EXTS and p.is_file()]
     paths += [p for p in sorted(SWITCH_GAMES.iterdir())
-              if (p / "base").is_dir()]
+              if (p / "base" / "exefs").is_dir()]
     games, plans = [], {}
     for path in paths:
         rel = path.relative_to(SWITCH_GAMES)
         idx = len(games)
-        # Eglantine carga las carpetas extraídas desde base/ (la que tiene
-        # exefs y romfs), no desde la del juego
-        target = path / "base" if path.is_dir() else path
+        # Eglantine carga las carpetas extraídas desde base/exefs: su cargador
+        # busca la romfs junto a la carpeta exefs
+        target = path / "base" / "exefs" if path.is_dir() else path
         games.append(Game(
             source="eglantine",
             id=str(rel),
