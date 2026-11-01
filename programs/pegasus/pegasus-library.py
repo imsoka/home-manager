@@ -10,6 +10,8 @@
 #   ~/.config/heroic, que ya tienen la biblioteca completa con imágenes.
 # - Nativos (ports de Linux sin tienda): un JSON por juego en
 #   ~/.config/pegasus-library/native, que escribe home-manager.
+# - Eglantine (emulador de Switch): cada título de SWITCH_GAMES, con
+#   subcarpetas, se abre con `eglantine -g <archivo>`.
 #
 # El tiempo jugado sale de las tiendas y sustituye al que cuenta Pegasus en
 # stats.db: Pegasus lanza los juegos a través de Steam o Heroic, que son
@@ -24,6 +26,7 @@ import io
 import json
 import os
 import re
+import shlex
 import shutil
 import sqlite3
 import sys
@@ -54,6 +57,9 @@ HEROIC = HOME / ".config/heroic"
 PLAY_CMD = os.environ.get("PEGASUS_LIBRARY_PLAY", "pegasus-play")
 HEROIC_CMD = os.environ.get("PEGASUS_LIBRARY_HEROIC", "heroic")
 INSTALL_CMD = os.environ.get("PEGASUS_LIBRARY_INSTALL", "heroic-install")
+EGLANTINE_CMD = os.environ.get("PEGASUS_LIBRARY_EGLANTINE", "eglantine")
+SWITCH_GAMES = Path(os.environ.get("PEGASUS_LIBRARY_SWITCH", "/games/Switch"))
+SWITCH_EXTS = (".nsp", ".nsz", ".xci", ".xcz")
 STEAM_INSTALL_CMD = os.environ.get("PEGASUS_LIBRARY_STEAM_INSTALL",
                                    "steam-install")
 # Tiendas que heroic-install sabe instalar sin la ventana de Heroic
@@ -94,7 +100,7 @@ HEROIC_STORES = {
     "sideload": ("sideload_apps/library.json", "games", "Otros"),
 }
 COLLECTION_ORDER = ["Steam", "Epic", "GOG", "Amazon", "Zoom", "Otros",
-                    "Nativos"]
+                    "Eglantine", "Nativos"]
 # shortname de la colección: el tema Reprise pone el icono
 # assets/platforms/<shortname>.svg; sin icono muestra el nombre
 SHORTNAMES = {
@@ -596,6 +602,29 @@ def native_games():
     return games
 
 
+# --- Eglantine ------------------------------------------------------------
+
+def eglantine_games():
+    """Títulos de Switch en SWITCH_GAMES (con subcarpetas). Eglantine no
+    tiene biblioteca que leer, así que cada archivo es un juego."""
+    if not SWITCH_GAMES.is_dir():
+        return []
+    games = []
+    for path in sorted(SWITCH_GAMES.rglob("*")):
+        if path.suffix.lower() not in SWITCH_EXTS or not path.is_file():
+            continue
+        rel = path.relative_to(SWITCH_GAMES)
+        games.append(Game(
+            source="eglantine",
+            id=str(rel),
+            title=path.stem,
+            installed=True,
+            launch=f"{EGLANTINE_CMD} -g {shlex.quote(str(path))}",
+            collection="Eglantine",
+        ))
+    return games
+
+
 # --- Salida para Pegasus --------------------------------------------------
 
 def clean(text):
@@ -695,6 +724,7 @@ def update_stats(games):
 def main():
     games = []
     for name, plugin in (("steam", steam_games), ("heroic", heroic_games),
+                         ("eglantine", eglantine_games),
                          ("nativos", native_games)):
         try:
             found = plugin()
