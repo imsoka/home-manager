@@ -1,15 +1,16 @@
 { pkgs, ... }:
 
 # Eglantine (https://github.com/zortos293/Eglantine): emulador experimental de
-# Nintendo Switch 2. AppImage de la release nx2-build-34 (build no-PGO). Esa
-# release no publica SHA256SUMS: el sha256 se ha calculado descargando el
-# fichero. Para actualizar: cambiar la URL y el hash por los de la release nueva.
+# Nintendo Switch 2. AppImage PGO de la release nx2-build-34 (las builds -pgo
+# son las recomendadas por el autor si la CPU lo soporta). Esa release no
+# publica SHA256SUMS: el sha256 se ha calculado descargando el fichero. Para
+# actualizar: cambiar la URL y el hash por los de la release nueva.
 let
   pname = "eglantine";
-  version = "build34";
+  version = "build34-pgo";
   src = pkgs.fetchurl {
-    url = "https://github.com/zortos293/Eglantine/releases/download/nx2-build-34/eglantine-nx2-build-34-linux-x86_64.AppImage";
-    sha256 = "6211cd69371952ecd4e2b0a4095755321eb5d1aa9e04295f853141cd8dc7e8ed";
+    url = "https://github.com/zortos293/Eglantine/releases/download/nx2-build-34/eglantine-nx2-build-34-linux-x86_64-pgo.AppImage";
+    sha256 = "630346127765bb35838061bd9baada43161480ff29d60e392f91ce6a5f951f31";
   };
   contents = pkgs.appimageTools.extract { inherit pname version src; };
 in
