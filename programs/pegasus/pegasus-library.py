@@ -61,6 +61,9 @@ INSTALL_CMD = os.environ.get("PEGASUS_LIBRARY_INSTALL", "heroic-install")
 EGLANTINE_CMD = os.environ.get("PEGASUS_LIBRARY_EGLANTINE", "eglantine")
 SWITCH_GAMES = Path(os.environ.get("PEGASUS_LIBRARY_SWITCH", "/games/Switch"))
 SWITCH_EXTS = (".nsp", ".nsz", ".xci", ".xcz")
+# Carátulas de Switch a mano, fuera del repo (son arte de Nintendo):
+# <COVERS>/<id del juego>/boxFront.jpg o background.png, etc.
+EGLANTINE_COVERS = DATA / "covers/eglantine"
 STEAM_INSTALL_CMD = os.environ.get("PEGASUS_LIBRARY_STEAM_INSTALL",
                                    "steam-install")
 # Tiendas que heroic-install sabe instalar sin la ventana de Heroic
@@ -616,9 +619,10 @@ def eglantine_games():
              if p.suffix.lower() in SWITCH_EXTS and p.is_file()]
     paths += [p for p in sorted(SWITCH_GAMES.iterdir())
               if (p / "base").is_dir()]
-    games = []
+    games, plans = [], {}
     for path in paths:
         rel = path.relative_to(SWITCH_GAMES)
+        idx = len(games)
         games.append(Game(
             source="eglantine",
             id=str(rel),
@@ -627,6 +631,14 @@ def eglantine_games():
             launch=f"{EGLANTINE_CMD} -g {shlex.quote(str(path))}",
             collection="Eglantine",
         ))
+        safe_id = re.sub(r"[^A-Za-z0-9._-]", "_", str(rel))
+        for asset in ASSET_SIZES:
+            sources = [EGLANTINE_COVERS / str(rel) / (asset + ext)
+                       for ext in (".jpg", ".png", ".webp")]
+            if any(s.is_file() for s in sources):
+                dest = MEDIA / "eglantine" / safe_id / (asset + ".webp")
+                plans[(idx, asset)] = (dest, sources)
+    resolve_assets(games, plans)
     return games
 
 
