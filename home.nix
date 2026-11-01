@@ -12,6 +12,7 @@
     ./programs/keepassxc/keepassxc.nix
     ./programs/goldendict/goldendict.nix
     ./programs/learnharness/learnharness.nix
+    ./programs/eglantine/eglantine.nix
     ./window-managers/niri/niri.nix
   ];
 
