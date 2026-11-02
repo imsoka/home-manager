@@ -40,6 +40,16 @@
   zstd,
   callPackage,
   wrapGAppsHook3,
+  # Fuente por defecto: el fork de MKW. Se puede sustituir (p. ej. por el
+  # tag build-129 de upstream) pasando pkgSrc y pkgVersion. (No se llaman
+  # src/version: callPackage rellenaría src con el paquete de nixpkgs.)
+  pkgVersion ? "mkw-2108c0e",
+  pkgSrc ? fetchFromGitHub {
+    owner = "Wael3rd";
+    repo = "Eglantine-MKW";
+    rev = "2108c0ea93b74976070fa128dc8164eec9c0a304";
+    hash = "sha256-8PjZHVRY/4lJSg3EPix6c1h16jd9N9UzjESD3LF5qxI=";
+  },
 }:
 
 # Eglantine-MKW (https://github.com/Wael3rd/Eglantine-MKW): rama mkw-eglantine,
@@ -59,18 +69,21 @@ let
     rev = "11b08f2712264bbed731545085cbd9702096ceb7";
     hash = "sha256-pHvxa1gkUvQo6mUgmLWtj1kcu01BLdGmttZyb8ZAj/o=";
   };
+
+  # upstream (build-129) empaqueta zstd en vez de usar el del sistema, y CPM
+  # intentaría descargarlo. zstd_CUSTOM_DIR evita la descarga.
+  zstd-src = fetchFromGitHub {
+    owner = "facebook";
+    repo = "zstd";
+    rev = "33618c89e511637f8a6ef955b3501766d71feb53";
+    hash = "sha256-UP99PUq8N+fmU972Jxim4f9u//T+4hRW+wuTZzWg3uI=";
+  };
 in
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "eglantine";
-  version = "mkw-2108c0e";
-
-  src = fetchFromGitHub {
-    owner = "Wael3rd";
-    repo = "Eglantine-MKW";
-    rev = "2108c0ea93b74976070fa128dc8164eec9c0a304";
-    hash = "sha256-8PjZHVRY/4lJSg3EPix6c1h16jd9N9UzjESD3LF5qxI=";
-  };
+  version = pkgVersion;
+  src = pkgSrc;
 
   strictDeps = true;
   __structuredAttrs = true;
@@ -131,6 +144,12 @@ stdenv.mkDerivation (finalAttrs: {
     # usar paquetes del sistema
     (lib.cmakeBool "CPMUTIL_FORCE_SYSTEM" true)
     (lib.cmakeBool "ENABLE_RESHADE" false)
+
+    # Ryzen 7 2700X (Zen+): znver1 da AVX2 y BMI2 sin instrucciones de Zen 2.
+    # -march=native no sirve: el sandbox de Nix lo elimina (NIX_ENFORCE_NO_NATIVE).
+    (lib.cmakeFeature "CMAKE_C_FLAGS" "-march=znver1 -mtune=znver1")
+    (lib.cmakeFeature "CMAKE_CXX_FLAGS" "-march=znver1 -mtune=znver1")
+    (lib.cmakeFeature "zstd_CUSTOM_DIR" "${zstd-src}")
     (lib.cmakeFeature "YUZU_TZDB_PATH" "${nx_tzdb}")
 
     # opciones opcionales
