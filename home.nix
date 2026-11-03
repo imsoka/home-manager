@@ -13,6 +13,7 @@
     ./programs/goldendict/goldendict.nix
     ./programs/learnharness/learnharness.nix
     ./programs/eglantine/eglantine.nix
+    ./programs/lichii/lichii.nix
     ./window-managers/niri/niri.nix
   ];
 
