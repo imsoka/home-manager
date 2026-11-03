@@ -59,6 +59,8 @@ PLAY_CMD = os.environ.get("PEGASUS_LIBRARY_PLAY", "pegasus-play")
 HEROIC_CMD = os.environ.get("PEGASUS_LIBRARY_HEROIC", "heroic")
 INSTALL_CMD = os.environ.get("PEGASUS_LIBRARY_INSTALL", "heroic-install")
 EGLANTINE_CMD = os.environ.get("PEGASUS_LIBRARY_EGLANTINE", "eglantine")
+# Mario Kart World (mkw.nup / carpeta mkw) se lanza con Lichii
+LICHII_CMD = os.environ.get("PEGASUS_LIBRARY_LICHII", "lichii")
 SWITCH_GAMES = Path(os.environ.get("PEGASUS_LIBRARY_SWITCH", "/games/Switch"))
 SWITCH_EXTS = (".nsp", ".nsz", ".xci", ".xcz", ".nup")
 # Carátulas de Switch a mano, fuera del repo (son arte de Nintendo):
@@ -699,7 +701,8 @@ def eglantine_games():
             id=str(key),
             title=path.stem if path.is_file() else path.name,
             installed=True,
-            launch=f"{EGLANTINE_CMD} -f -g {shlex.quote(str(target))}",
+            launch=f"{LICHII_CMD if str(key) == 'mkw' else EGLANTINE_CMD}"
+                   f" -f -g {shlex.quote(str(target))}",
             collection="Eglantine",
         ))
         safe_id = re.sub(r"[^A-Za-z0-9._-]", "_", str(key))
