@@ -39,10 +39,6 @@ properties:
       directives: { description: Nextcloud }
       settings: { id: Nextcloud.NextcloudDesktop, source: winget }
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Calibre
-      directives: { description: Calibre }
-      settings: { id: calibre.calibre, source: winget }
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Anki
       directives: { description: Anki }
       settings: { id: Anki.Anki, source: winget }
@@ -68,10 +64,6 @@ properties:
       id: Teams
       directives: { description: Microsoft Teams }
       settings: { id: Microsoft.Teams, source: winget }
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Chatterino7
-      directives: { description: Chatterino7 }
-      settings: { id: SevenTV.Chatterino7, source: winget }
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Tailscale
       directives: { description: Tailscale }
