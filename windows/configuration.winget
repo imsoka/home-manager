@@ -38,16 +38,8 @@ properties:
       id: Nextcloud
       directives: { description: Nextcloud }
       settings: { id: Nextcloud.NextcloudDesktop, source: winget }
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Anki
-      directives: { description: Anki }
-      settings: { id: Anki.Anki, source: winget }
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: mpv
-      directives: { description: mpv }
-      settings: { id: shinchiro.mpv, source: winget }
 
-    # Trabajo (hosts/work/applications.nix, ia.nix, tailscale.nix)
+    # Trabajo (hosts/work/applications.nix, ia.nix)
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: VSCodium
       directives: { description: VSCodium }
@@ -60,15 +52,3 @@ properties:
       id: DBeaver
       directives: { description: DBeaver Community }
       settings: { id: DBeaver.DBeaver.Community, source: winget }
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Teams
-      directives: { description: Microsoft Teams }
-      settings: { id: Microsoft.Teams, source: winget }
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Tailscale
-      directives: { description: Tailscale }
-      settings: { id: Tailscale.Tailscale, source: winget }
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: GrokBot
-      directives: { description: Grok Bot }
-      settings: { id: xAI.GrokBot, source: winget }
