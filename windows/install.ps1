@@ -1,4 +1,4 @@
-﻿# Prepara el portátil Windows: WSL2 + NixOS-WSL, apps (winget), fuente, GlazeWM y
+﻿# Prepara el portátil Windows: WSL2 + NixOS-WSL, winget y apps, fuente, GlazeWM y
 # WezTerm. Se puede relanzar las veces que haga falta: salta lo ya hecho.
 #
 # PowerShell como administrador (descargar y ejecutar con -File; irm | iex en
@@ -59,7 +59,64 @@ if ($distros -contains 'NixOS') {
     Remove-Item $image
 }
 
-# --- 3. Apps ---
+# --- 3. winget (>= 1.6, necesario para winget configure) ---
+function Get-WingetVersion {
+    # El alias de winget vive aquí; en una sesión recién instalada puede faltar en el PATH
+    $apps = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps'
+    if (($env:Path -split ';') -notcontains $apps) { $env:Path += ";$apps" }
+    try { $v = (& winget.exe --version 2>$null) } catch { return $null }
+    if ($LASTEXITCODE -ne 0 -or -not $v) { return $null }
+    return [version](($v | Select-Object -First 1).Trim().TrimStart('v') -replace '-.*$', '')
+}
+
+Step 'winget'
+$wingetMin = [version]'1.6.0'
+$wingetVer = Get-WingetVersion
+if ($wingetVer -and $wingetVer -ge $wingetMin) {
+    Note "winget $wingetVer ya está disponible."
+} else {
+    if ($wingetVer) { Note "winget $wingetVer es demasiado antiguo: actualizando." } else { Note 'winget no está: instalando.' }
+
+    # Vía oficial: módulo Microsoft.WinGet.Client (instala o repara winget)
+    try {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Scope AllUsers | Out-Null
+        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+        Install-Module Microsoft.WinGet.Client -Repository PSGallery -Scope AllUsers -Force
+        Import-Module Microsoft.WinGet.Client -Force
+        Repair-WinGetPackageManager -AllUsers -Latest -Force
+    } catch {
+        Note "El módulo Microsoft.WinGet.Client falló ($_); instalo el paquete de GitHub."
+    }
+
+    # Respaldo: msixbundle de la última release de winget-cli con sus dependencias
+    $wingetVer = Get-WingetVersion
+    if (-not $wingetVer -or $wingetVer -lt $wingetMin) {
+        $tmp = Join-Path $env:TEMP 'winget-install'
+        Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
+        New-Item -ItemType Directory $tmp | Out-Null
+        $base = 'https://github.com/microsoft/winget-cli/releases/latest/download'
+        $deps = Join-Path $tmp 'deps.zip'
+        $bundle = Join-Path $tmp 'winget.msixbundle'
+        Invoke-WebRequest "$base/DesktopAppInstaller_Dependencies.zip" -OutFile $deps
+        Invoke-WebRequest "$base/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle" -OutFile $bundle
+        Expand-Archive $deps -DestinationPath (Join-Path $tmp 'deps')
+        Get-ChildItem (Join-Path $tmp 'deps') -Recurse -Filter *.appx |
+            Where-Object { $_.FullName -match '\\x64\\' } |
+            ForEach-Object { Add-AppxPackage -Path $_.FullName -ErrorAction SilentlyContinue }
+        Add-AppxPackage -Path $bundle
+        Remove-Item $tmp -Recurse -Force
+        Start-Sleep -Seconds 5   # el alias tarda un momento en registrarse
+        $wingetVer = Get-WingetVersion
+    }
+
+    if (-not $wingetVer -or $wingetVer -lt $wingetMin) {
+        throw 'No he podido instalar winget. Instala o actualiza "Instalador de aplicación" desde la Microsoft Store y relanza el script.'
+    }
+    Note "winget $wingetVer instalado."
+}
+
+# --- 4. Apps ---
 Step 'Apps (winget configure)'
 & winget configure -f (Join-Path $here 'configuration.winget') --accept-configuration-agreements
 if ($LASTEXITCODE -ne 0) { Note 'winget configure terminó con errores: revisa la salida y relanza.' }
@@ -78,7 +135,7 @@ if ($lhInstalled) {
     Remove-Item $exe
 }
 
-# --- 4. Fuente: SauceCodePro Nerd Font (no está en winget), instalada para el usuario ---
+# --- 5. Fuente: SauceCodePro Nerd Font (no está en winget), instalada para el usuario ---
 Step 'SauceCodePro Nerd Font'
 $fontDir = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Fonts'
 $fontReg = 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts'
@@ -102,7 +159,7 @@ if (Test-Path (Join-Path $fontDir 'SauceCodeProNerdFont-Regular.ttf')) {
     Remove-Item $tmp -Recurse -Force
 }
 
-# --- 5. GlazeWM ---
+# --- 6. GlazeWM ---
 Step 'GlazeWM'
 $glzr = Join-Path $env:USERPROFILE '.glzr\glazewm'
 New-Item -ItemType Directory $glzr -Force | Out-Null
@@ -132,13 +189,13 @@ if ($glazeExe) {
     Note 'No encuentro glazewm.exe: añádelo a mano al arranque (shell:startup).'
 }
 
-# --- 6. WezTerm ---
+# --- 7. WezTerm ---
 Step 'WezTerm'
 $wezDir = Join-Path $env:USERPROFILE '.config\wezterm'
 New-Item -ItemType Directory $wezDir -Force | Out-Null
 Copy-Item (Join-Path $here 'wezterm\wezterm.lua') (Join-Path $wezDir 'wezterm.lua') -Force
 
-# --- 7. Lo que queda a mano ---
+# --- 8. Lo que queda a mano ---
 Step 'Pendiente a mano'
 Note 'FortiClient VPN (VPN rema): https://www.fortinet.com/support/product-downloads'
 Note 'LibreSprite: https://libresprite.github.io'
