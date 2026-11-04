@@ -163,6 +163,16 @@ Repair-WinGetPackageManager -AllUsers -Latest -Force
 
 # --- 4. Apps ---
 Step 'Apps (winget configure)'
+# winget configure viene desactivado ("extended features are not enabled"): se activa
+# una vez. Primero con este usuario y, si pide administrador, elevado.
+try { & winget.exe configure --enable *> $null } catch { }
+if ($LASTEXITCODE -ne 0) {
+    $rc = Invoke-Elevated 'Activar winget configure' @'
+& winget.exe configure --enable
+if ($LASTEXITCODE -ne 0) { throw "winget configure --enable devolvió $LASTEXITCODE" }
+'@
+    if ($rc -ne 0) { Note 'No se pudo activar winget configure; el paso de apps fallará.' }
+}
 & winget configure -f (Join-Path $here 'configuration.winget') --accept-configuration-agreements
 if ($LASTEXITCODE -ne 0) { Note 'winget configure terminó con errores: revisa la salida y relanza.' }
 
@@ -172,10 +182,18 @@ $lhInstalled = Get-ItemProperty $lhKey -ErrorAction SilentlyContinue | Where-Obj
 if ($lhInstalled) {
     Note 'LearnHarness ya está instalado (se actualiza sola).'
 } else {
-    $rel = Invoke-RestMethod 'https://api.github.com/repos/amosblomqvist/learnharness/releases/latest'
-    $asset = $rel.assets | Where-Object { $_.name -like '*-x64-setup.exe' } | Select-Object -First 1
-    $exe = Join-Path $env:TEMP $asset.name
-    Invoke-WebRequest $asset.browser_download_url -OutFile $exe
+    # Sin la API de GitHub (límite de peticiones por IP, que en la red de la empresa se
+    # agota): el latest.yml de electron-builder da el nombre del instalador y su sha512
+    $base = 'https://github.com/amosblomqvist/learnharness/releases/latest/download'
+    $yml = (Invoke-WebRequest "$base/latest.yml" -UseBasicParsing).Content
+    if ($yml -is [byte[]]) { $yml = [Text.Encoding]::UTF8.GetString($yml) }
+    $name = ([regex]::Match($yml, '(?m)^path:\s*(\S+)')).Groups[1].Value
+    $sha = ([regex]::Match($yml, '(?m)^sha512:\s*(\S+)')).Groups[1].Value
+    if (-not $name) { throw 'No encuentro el instalador de LearnHarness en latest.yml.' }
+    $exe = Join-Path $env:TEMP $name
+    Invoke-WebRequest "$base/$name" -OutFile $exe
+    $hash = [Convert]::ToBase64String((New-Object Security.Cryptography.SHA512Managed).ComputeHash([IO.File]::ReadAllBytes($exe)))
+    if ($sha -and $hash -ne $sha) { Remove-Item $exe; throw 'El sha512 del instalador de LearnHarness no coincide.' }
     Start-Process $exe -Wait
     Remove-Item $exe
 }
