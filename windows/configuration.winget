@@ -44,7 +44,14 @@ properties:
       id: DBeaver
       directives: { description: DBeaver Community }
       settings: { id: DBeaver.DBeaver.Community, source: winget }
-
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: GrokBot
+      directives: { description: Grok Bot }
+      settings: { id: xAI.GrokBot, source: winget }
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Claude
+      directives: { description: Claude }
+      settings: { id: Anthropic.Claude, source: winget }
     # Desinstaladas: winget no recuerda lo que instaló, así que lo que se quite se deja aquí con
     # Ensure: Absent para que `winget configure` lo desinstale. (Teams no: lo gestiona la organización.)
     - resource: Microsoft.WinGet.DSC/WinGetPackage
@@ -59,10 +66,6 @@ properties:
       id: Tailscale
       directives: { description: Tailscale (desinstalar) }
       settings: { id: Tailscale.Tailscale, source: winget, Ensure: Absent }
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: GrokBot
-      directives: { description: Grok Bot (desinstalar) }
-      settings: { id: xAI.GrokBot, source: winget, Ensure: Absent }
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: GlazeWM
       directives: { description: GlazeWM (desinstalar) }
