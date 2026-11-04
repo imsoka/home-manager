@@ -1,10 +1,10 @@
 ﻿# Prepara el portátil Windows: WSL2 + NixOS-WSL, apps (winget), fuente, GlazeWM y
 # WezTerm. Se puede relanzar las veces que haga falta: salta lo ya hecho.
 #
-# PowerShell como administrador:
-#   Set-ExecutionPolicy -Scope Process Bypass
-#   irm https://raw.githubusercontent.com/imsoka/home-manager/master/windows/install.ps1 | iex
-# o, con el repo a mano: powershell -ExecutionPolicy Bypass -File install.ps1
+# PowerShell como administrador (descargar y ejecutar con -File; irm | iex en
+# PowerShell 5.1 puede romper el BOM y los acentos):
+#   irm https://raw.githubusercontent.com/imsoka/home-manager/master/windows/install.ps1 -OutFile $env:TEMP\install.ps1
+#   powershell -ExecutionPolicy Bypass -File $env:TEMP\install.ps1
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'   # Invoke-WebRequest va mucho más rápido sin barra
