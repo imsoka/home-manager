@@ -72,7 +72,10 @@ if ((Test-Path $glzr) -and -not (Get-ChildItem $glzr)) {
     if (-not (Get-ChildItem $parent)) { Remove-Item $parent -Force }
 }
 Remove-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System' -Name DisableLockWorkstation -ErrorAction SilentlyContinue
-Remove-Item (Join-Path ([Environment]::GetFolderPath('Startup')) 'GlazeWM.lnk') -Force -ErrorAction SilentlyContinue
+# GetFolderPath('Startup') viene vacío en cuentas que nunca han abierto el escritorio
+$startup = [Environment]::GetFolderPath('Startup')
+if (-not $startup) { $startup = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup' }
+Remove-Item (Join-Path $startup 'GlazeWM.lnk') -Force -ErrorAction SilentlyContinue
 
 # --- 5. WezTerm y Windows Terminal ---
 Step 'WezTerm / Windows Terminal'

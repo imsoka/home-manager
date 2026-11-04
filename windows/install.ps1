@@ -235,7 +235,10 @@ if (-not $glazeExe) {
         Select-Object -First 1 -ExpandProperty FullName
 }
 if ($glazeExe) {
-    $lnk = Join-Path ([Environment]::GetFolderPath('Startup')) 'GlazeWM.lnk'
+    $startup = [Environment]::GetFolderPath('Startup')
+    if (-not $startup) { $startup = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup' }
+    New-Item -ItemType Directory $startup -Force | Out-Null
+    $lnk = Join-Path $startup 'GlazeWM.lnk'
     $sc = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
     $sc.TargetPath = $glazeExe
     $sc.Save()
