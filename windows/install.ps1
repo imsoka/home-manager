@@ -1,8 +1,12 @@
 ﻿# Prepara el portátil Windows: WSL2 + NixOS-WSL, winget y apps, fuente, GlazeWM y
 # WezTerm. Se puede relanzar las veces que haga falta: salta lo ya hecho.
 #
-# PowerShell como administrador (descargar y ejecutar con -File; irm | iex en
-# PowerShell 5.1 puede romper el BOM y los acentos):
+# Se ejecuta en un PowerShell NORMAL, con tu usuario (no "como administrador"): las
+# distros de WSL, la fuente, las configs y muchas apps son por usuario, y si la
+# elevación usa otra cuenta acabarían en esa cuenta. Los pasos que necesitan
+# administrador (activar WSL, instalar winget, desactivar Win+L) piden permiso aparte.
+# Descargar y ejecutar con -File (irm | iex en PowerShell 5.1 puede romper el BOM y
+# los acentos):
 #   irm https://raw.githubusercontent.com/imsoka/home-manager/master/windows/install.ps1 -OutFile $env:TEMP\install.ps1
 #   powershell -ExecutionPolicy Bypass -File $env:TEMP\install.ps1
 
@@ -13,9 +17,41 @@ $env:WSL_UTF8 = '1'                        # salida de wsl.exe en UTF-8 y no UTF
 function Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Cyan }
 function Note($msg) { Write-Host "    $msg" -ForegroundColor Yellow }
 
-$admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
-         ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $admin) { throw 'Ejecuta este script en un PowerShell como administrador.' }
+# --- Tiene que correr con la cuenta de la sesión de escritorio ---
+$me = [Security.Principal.WindowsIdentity]::GetCurrent()
+$owner = Get-CimInstance Win32_Process -Filter "Name='explorer.exe'" |
+    Select-Object -First 1 | Invoke-CimMethod -MethodName GetOwner
+$sessionUser = if ($owner) { "$($owner.Domain)\$($owner.User)" } else { $null }
+if ($sessionUser -and $sessionUser -ine $me.Name) {
+    throw "Este PowerShell es de '$($me.Name)', pero la sesión es de '$sessionUser'. Ábrelo normal, sin 'como administrador'."
+}
+$mySid = $me.User.Value
+
+# Ejecuta un bloque como administrador en otra ventana (UAC) y espera. Lo que toque
+# HKCU o el perfil ahí sería de la cuenta de administrador: solo cosas de equipo.
+function Invoke-Elevated([string]$Title, [string]$Script) {
+    $wrapped = @"
+`$ErrorActionPreference = 'Stop'
+`$ProgressPreference = 'SilentlyContinue'
+Write-Host '$Title (como administrador)' -ForegroundColor Cyan
+try {
+$Script
+} catch {
+    Write-Host "Error: `$_" -ForegroundColor Red
+    Read-Host 'Pulsa Enter para cerrar'
+    exit 1
+}
+"@
+    $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($wrapped))
+    try {
+        $p = Start-Process powershell.exe -Verb RunAs -Wait -PassThru `
+            -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', $enc
+        return $p.ExitCode
+    } catch {
+        Note "No se concedió el permiso de administrador ($_)."
+        return 1
+    }
+}
 
 # --- Ficheros del repo: junto al script o, si se lanzó con irm | iex, descargados ---
 $here = if ($PSScriptRoot) { $PSScriptRoot } else { '' }
@@ -35,7 +71,11 @@ Step 'WSL2'
 # PS 5.1 con 'Stop' convierte la salida de error de un .exe en excepción
 try { & wsl.exe --version *> $null } catch { }
 if ($LASTEXITCODE -ne 0) {
-    & wsl.exe --install --no-distribution
+    $rc = Invoke-Elevated 'Activar WSL' @'
+& wsl.exe --install --no-distribution
+if ($LASTEXITCODE -ne 0) { throw "wsl --install devolvió $LASTEXITCODE" }
+'@
+    if ($rc -ne 0) { throw 'No se pudo activar WSL.' }
     Note 'WSL instalado. REINICIA Windows y vuelve a lanzar este script.'
     return   # no exit: con irm | iex cerraría la ventana
 }
@@ -55,8 +95,13 @@ if ($distros -contains 'NixOS') {
         $dir = Join-Path $env:USERPROFILE 'NixOS'
         & wsl.exe --import NixOS $dir $image
     }
-    & wsl.exe --set-default NixOS
     Remove-Item $image
+    $distros = (& wsl.exe --list --quiet) -split "`r?`n" | ForEach-Object { $_.Trim() }
+    if ($distros -notcontains 'NixOS') {
+        throw "NixOS no aparece en 'wsl --list' tras instalarlo. Distros actuales: $($distros -join ', ')"
+    }
+    & wsl.exe --set-default NixOS
+    Note 'NixOS instalado para este usuario.'
 }
 
 # --- 3. winget (>= 1.6, necesario para winget configure) ---
@@ -77,19 +122,19 @@ if ($wingetVer -and $wingetVer -ge $wingetMin) {
 } else {
     if ($wingetVer) { Note "winget $wingetVer es demasiado antiguo: actualizando." } else { Note 'winget no está: instalando.' }
 
-    # Vía oficial: módulo Microsoft.WinGet.Client (instala o repara winget)
-    try {
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Scope AllUsers | Out-Null
-        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-        Install-Module Microsoft.WinGet.Client -Repository PSGallery -Scope AllUsers -Force
-        Import-Module Microsoft.WinGet.Client -Force
-        Repair-WinGetPackageManager -AllUsers -Latest -Force
-    } catch {
-        Note "El módulo Microsoft.WinGet.Client falló ($_); instalo el paquete de GitHub."
-    }
+    # Vía oficial, como administrador: módulo Microsoft.WinGet.Client, que instala o
+    # repara winget para todos los usuarios (-AllUsers), también para este
+    $rc = Invoke-Elevated 'Instalar winget' @'
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Scope AllUsers | Out-Null
+Install-Module Microsoft.WinGet.Client -Repository PSGallery -Scope AllUsers -Force
+Import-Module Microsoft.WinGet.Client -Force
+Repair-WinGetPackageManager -AllUsers -Latest -Force
+'@
+    if ($rc -ne 0) { Note 'El módulo Microsoft.WinGet.Client falló; instalo el paquete de GitHub.' }
 
-    # Respaldo: msixbundle de la última release de winget-cli con sus dependencias
+    # Respaldo, con este usuario (Add-AppxPackage registra para quien lo ejecuta):
+    # msixbundle de la última release de winget-cli con sus dependencias
     $wingetVer = Get-WingetVersion
     if (-not $wingetVer -or $wingetVer -lt $wingetMin) {
         $tmp = Join-Path $env:TEMP 'winget-install'
@@ -166,12 +211,21 @@ New-Item -ItemType Directory $glzr -Force | Out-Null
 Copy-Item (Join-Path $here 'glazewm\config.yaml') (Join-Path $glzr 'config.yaml') -Force
 Copy-Item (Join-Path $here 'glazewm\lock.ps1') (Join-Path $glzr 'lock.ps1') -Force
 
-# Win+L pasa a GlazeWM: se desactiva el bloqueo de Windows (Win+Ctrl+L bloquea con lock.ps1)
+# Win+L pasa a GlazeWM: se desactiva el bloqueo de Windows (Win+Ctrl+L bloquea con
+# lock.ps1). La clave Policies solo la escribe un administrador; se escribe en el
+# registro de ESTE usuario (HKEY_USERS\<SID>), no en el HKCU de la cuenta elevada.
 $pol = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System'
-if (-not (Test-Path $pol)) { New-Item $pol -Force | Out-Null }
-Set-ItemProperty $pol -Name DisableLockWorkstation -Value 1 -Type DWord
-if ((Get-ItemProperty $pol).DisableLockWorkstation -ne 1) {
-    Note 'No se pudo desactivar Win+L (¿política de empresa?): seguirá bloqueando la sesión.'
+if ((Get-ItemProperty $pol -ErrorAction SilentlyContinue).DisableLockWorkstation -eq 1) {
+    Note 'Win+L ya está desactivado.'
+} else {
+    $rc = Invoke-Elevated 'Desactivar Win+L' @"
+`$k = 'Registry::HKEY_USERS\$mySid\Software\Microsoft\Windows\CurrentVersion\Policies\System'
+if (-not (Test-Path `$k)) { New-Item `$k -Force | Out-Null }
+Set-ItemProperty `$k -Name DisableLockWorkstation -Value 1 -Type DWord
+"@
+    if ((Get-ItemProperty $pol -ErrorAction SilentlyContinue).DisableLockWorkstation -ne 1) {
+        Note 'No se pudo desactivar Win+L (¿política de empresa?): seguirá bloqueando la sesión.'
+    }
 }
 
 # Arranque con la sesión
