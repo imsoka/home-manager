@@ -270,9 +270,27 @@ $wezDir = Join-Path $env:USERPROFILE '.config\wezterm'
 New-Item -ItemType Directory $wezDir -Force | Out-Null
 Copy-Item (Join-Path $here 'wezterm\wezterm.lua') (Join-Path $wezDir 'wezterm.lua') -Force
 
-# --- 8. Lo que queda a mano ---
+# --- 8. ssh-agent de Windows: KeePassXC le carga las claves y NixOS-WSL lo usa vía
+# wsl2-ssh-agent (wsl.ssh-agent en sokix-wsl). Viene deshabilitado; activarlo es de equipo.
+Step 'ssh-agent de Windows'
+$agent = Get-Service ssh-agent -ErrorAction SilentlyContinue
+if ($agent -and $agent.StartType -eq 'Automatic' -and $agent.Status -eq 'Running') {
+    Note 'Ya está activo.'
+} else {
+    $rc = Invoke-Elevated 'Activar ssh-agent' @'
+if (-not (Get-Service ssh-agent -ErrorAction SilentlyContinue)) {
+    Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0 | Out-Null
+}
+Set-Service ssh-agent -StartupType Automatic
+Start-Service ssh-agent
+'@
+    if ($rc -ne 0) { Note 'No se pudo activar ssh-agent (¿lo bloquea la política de la empresa?).' }
+}
+
+# --- 9. Lo que queda a mano ---
 Step 'Pendiente a mano'
 Note 'FortiClient VPN (VPN rema): https://www.fortinet.com/support/product-downloads'
 Note 'LibreSprite: https://libresprite.github.io'
+Note 'KeePassXC: Ajustes > Agente SSH > activar (OpenSSH); en cada entrada con clave, "Añadir clave al agente al abrir la base de datos".'
 Note 'Primer arranque de NixOS-WSL (usuario soka, repos, home-manager): ver CLAUDE.md del repo nixos.'
 Note 'Cierra sesión y vuelve a entrar para que arranque GlazeWM y se aplique la fuente.'
