@@ -1,0 +1,39 @@
+{
+  "profiles": [
+    {
+      "guid": "{291458d9-e6d7-4535-ba9a-aab35f74b92b}",
+      "name": "NixOS",
+      "commandline": "wsl.exe -d NixOS --cd ~",
+      "font": { "face": "SauceCodePro Nerd Font", "size": 11 },
+      "colorScheme": "Gruvbox Dark (soka)",
+      "historySize": 10000,
+      "bellStyle": "none",
+      "closeOnExit": "graceful"
+    }
+  ],
+  "schemes": [
+    {
+      "name": "Gruvbox Dark (soka)",
+      "background": "#282828",
+      "foreground": "#EBDBB2",
+      "cursorColor": "#EBDBB2",
+      "selectionBackground": "#504945",
+      "black": "#282828",
+      "red": "#CC241D",
+      "green": "#98971A",
+      "yellow": "#D79921",
+      "blue": "#458588",
+      "purple": "#B16286",
+      "cyan": "#689D6A",
+      "white": "#A89984",
+      "brightBlack": "#928374",
+      "brightRed": "#FB4934",
+      "brightGreen": "#B8BB26",
+      "brightYellow": "#FABD2F",
+      "brightBlue": "#83A598",
+      "brightPurple": "#D3869B",
+      "brightCyan": "#8EC07C",
+      "brightWhite": "#EBDBB2"
+    }
+  ]
+}

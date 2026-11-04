@@ -1,6 +1,6 @@
 # Home Manager (flake)
 
-Configuración según `hostname`: `sokix` → `.#soka`, `sokix-work` → `.#soka-work`. `home.nix` es común; los módulos exclusivos de cada máquina se añaden en `flake.nix` (personal: steam, discord, pegasus, soh, noctalia/gaming; work: noctalia/noctalia.nix y el parche de huella vía `fingerprintPatch`).
+Configuración según `hostname`: `sokix` → `.#soka`, `sokix-work` → `.#soka-work`, `sokix-wsl` → `.#soka-wsl`. `home-cli.nix` es la base de terminal (neovim, codex, usuario, stateVersion) y la única que usa `soka-wsl`; `home.nix` la importa y añade el escritorio (niri, Noctalia, GTK, kitty…) común a `soka` y `soka-work`. Lo exclusivo de cada máquina se añade en `flake.nix` (personal: steam, discord, pegasus, soh, noctalia/gaming; work: noctalia/noctalia.nix y el parche de huella vía `fingerprintPatch`). Algo nuevo de terminal va en `home-cli.nix`; algo gráfico, en `home.nix`.
 
 ## Dónde vive cada cosa
 - niri: reglas de ventanas, workspaces, atajos → `window-managers/niri/config.kdl`; `niri.nix` solo lo enlaza.
@@ -8,6 +8,7 @@ Configuración según `hostname`: `sokix` → `.#soka`, `sokix-work` → `.#soka
 - Pegasus (biblioteca para mando/Moonlight, tema reprise y sus parches, instalar/desinstalar) → `programs/pegasus/`; la biblioteca se genera con `pegasus-library.py`.
 - Noctalia (barra/shell): plugins en `programs/noctalia/` (`gaming.nix`, `claude-sessions.nix`, `wallpaper.nix`, `vpn-rema/`).
 - GTK y tema → `programs/gtk/gtk.nix` (genera `gtk.css` con el import de Noctalia).
+- Windows (portátil con sokix-wsl; no lo evalúa Nix) → `windows/`: `configuration.winget` (apps), `glazewm/` (config con Win como Mod calcando niri + `lock.ps1` para Win+Ctrl+L), `terminal/nixos.json` (fragmento de Windows Terminal) e `install.ps1`, que lo instala/copia todo y es relanzable. Tras editar algo de aquí, relanza `install.ps1` en Windows (o copia el fichero). Los `.ps1` llevan BOM UTF-8 para que PowerShell 5.1 lea bien los acentos.
 
 ## Aplicar
 1. Ficheros nuevos: `git add` antes del switch, o el flake no los ve.
