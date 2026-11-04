@@ -1,10 +1,10 @@
-﻿# Prepara el portátil Windows: WSL2 + NixOS-WSL, winget y apps, fuente, GlazeWM y
+﻿# Prepara el portátil Windows: WSL2 + NixOS-WSL, winget y apps, fuente, ssh-agent y
 # WezTerm. Se puede relanzar las veces que haga falta: salta lo ya hecho.
 #
 # Se ejecuta en un PowerShell NORMAL, con tu usuario (no "como administrador"): las
 # distros de WSL, la fuente, las configs y muchas apps son por usuario, y si la
 # elevación usa otra cuenta acabarían en esa cuenta. Los pasos que necesitan
-# administrador (activar WSL, instalar winget, desactivar Win+L) piden permiso aparte.
+# administrador (activar WSL, instalar winget, ssh-agent, reactivar Win+L) piden permiso aparte.
 # Descargar y ejecutar con -File (irm | iex en PowerShell 5.1 puede romper el BOM y
 # los acentos):
 #   irm https://raw.githubusercontent.com/imsoka/home-manager/master/windows/install.ps1 -OutFile $env:TEMP\install.ps1
@@ -222,46 +222,24 @@ if (Test-Path (Join-Path $fontDir 'SauceCodeProNerdFont-Regular.ttf')) {
     Remove-Item $tmp -Recurse -Force
 }
 
-# --- 6. GlazeWM ---
-Step 'GlazeWM'
-$glzr = Join-Path $env:USERPROFILE '.glzr\glazewm'
-New-Item -ItemType Directory $glzr -Force | Out-Null
-Copy-Item (Join-Path $here 'glazewm\config.yaml') (Join-Path $glzr 'config.yaml') -Force
-Copy-Item (Join-Path $here 'glazewm\lock.ps1') (Join-Path $glzr 'lock.ps1') -Force
+# --- 6. Limpieza de GlazeWM (ya no se usa; winget lo desinstala con Ensure: Absent) ---
+Step 'Limpieza de GlazeWM'
+Remove-Item (Join-Path $env:USERPROFILE '.glzr') -Recurse -Force -ErrorAction SilentlyContinue
+$startup = [Environment]::GetFolderPath('Startup')
+if ($startup) { Remove-Item (Join-Path $startup 'GlazeWM.lnk') -Force -ErrorAction SilentlyContinue }
 
-# Win+L pasa a GlazeWM: se desactiva el bloqueo de Windows (Win+Ctrl+L bloquea con
-# lock.ps1). La clave Policies solo la escribe un administrador; se escribe en el
-# registro de ESTE usuario (HKEY_USERS\<SID>), no en el HKCU de la cuenta elevada.
+# Versiones anteriores desactivaron Win+L para dárselo a GlazeWM: se vuelve a activar.
+# La clave Policies solo la toca un administrador, sobre el registro de ESTE usuario.
 $pol = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System'
-if ((Get-ItemProperty $pol -ErrorAction SilentlyContinue).DisableLockWorkstation -eq 1) {
-    Note 'Win+L ya está desactivado.'
+if ($null -eq (Get-ItemProperty $pol -ErrorAction SilentlyContinue).DisableLockWorkstation) {
+    Note 'Win+L ya bloquea la sesión.'
 } else {
-    $rc = Invoke-Elevated 'Desactivar Win+L' @"
-`$k = 'Registry::HKEY_USERS\$mySid\Software\Microsoft\Windows\CurrentVersion\Policies\System'
-if (-not (Test-Path `$k)) { New-Item `$k -Force | Out-Null }
-Set-ItemProperty `$k -Name DisableLockWorkstation -Value 1 -Type DWord
+    $rc = Invoke-Elevated 'Reactivar Win+L' @"
+Remove-ItemProperty 'Registry::HKEY_USERS\$mySid\Software\Microsoft\Windows\CurrentVersion\Policies\System' -Name DisableLockWorkstation
 "@
-    if ((Get-ItemProperty $pol -ErrorAction SilentlyContinue).DisableLockWorkstation -ne 1) {
-        Note 'No se pudo desactivar Win+L (¿política de empresa?): seguirá bloqueando la sesión.'
+    if ($null -ne (Get-ItemProperty $pol -ErrorAction SilentlyContinue).DisableLockWorkstation) {
+        Note 'No se pudo reactivar Win+L: borra DisableLockWorkstation de esa clave a mano.'
     }
-}
-
-# Arranque con la sesión
-$glazeExe = (Get-Command glazewm.exe -ErrorAction SilentlyContinue).Source
-if (-not $glazeExe) {
-    $glazeExe = Get-ChildItem "$env:ProgramFiles\glzr.io", "$env:LOCALAPPDATA\Programs" -Filter glazewm.exe -Recurse -ErrorAction SilentlyContinue |
-        Select-Object -First 1 -ExpandProperty FullName
-}
-if ($glazeExe) {
-    $startup = [Environment]::GetFolderPath('Startup')
-    if (-not $startup) { $startup = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup' }
-    New-Item -ItemType Directory $startup -Force | Out-Null
-    $lnk = Join-Path $startup 'GlazeWM.lnk'
-    $sc = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
-    $sc.TargetPath = $glazeExe
-    $sc.Save()
-} else {
-    Note 'No encuentro glazewm.exe: añádelo a mano al arranque (shell:startup).'
 }
 
 # --- 7. WezTerm ---
@@ -293,4 +271,4 @@ Note 'FortiClient VPN (VPN rema): https://www.fortinet.com/support/product-downl
 Note 'LibreSprite: https://libresprite.github.io'
 Note 'KeePassXC: Ajustes > Agente SSH > activar (OpenSSH); en cada entrada con clave, "Añadir clave al agente al abrir la base de datos".'
 Note 'Primer arranque de NixOS-WSL (usuario soka, repos, home-manager): ver CLAUDE.md del repo nixos.'
-Note 'Cierra sesión y vuelve a entrar para que arranque GlazeWM y se aplique la fuente.'
+Note 'Cierra sesión y vuelve a entrar para que se aplique la fuente.'
