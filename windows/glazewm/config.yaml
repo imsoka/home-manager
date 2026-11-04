@@ -6,10 +6,11 @@
 # install.ps1 desactiva el bloqueo (DisableLockWorkstation) y Win+Ctrl+L
 # (como en niri) bloquea con lock.ps1, que lo reactiva un momento.
 #
-# Sin equivalente: Mod+D (no hay lanzador; Win suelto abre la búsqueda de Inicio,
-# pero GlazeWM se come Win+D), Mod+Y (GoldenDict), consume/expel (Mod+Comma y
-# Mod+Period cambian aquí la dirección del mosaico) y el overlay de atajos.
-# Win+Space pasa a GlazeWM: el idioma de entrada se cambia con Alt+Shift.
+# Sin equivalente: Mod+D (no hay lanzador: Win suelto abre la búsqueda de Inicio y
+# Win+D sigue siendo "mostrar escritorio"), Mod+Y (GoldenDict), consume/expel
+# (Mod+Comma y Mod+Period cambian aquí la dirección del mosaico) y el overlay de atajos.
+# Win+Space y Win+R pasan a GlazeWM: el idioma de entrada se cambia con Alt+Shift y
+# el diálogo Ejecutar ya no tiene atajo.
 
 general:
   startup_commands: ['shell-exec zebar']
