@@ -8,9 +8,9 @@ properties:
   resources:
     # Terminal y escritorio
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: WindowsTerminal
-      directives: { description: Windows Terminal }
-      settings: { id: Microsoft.WindowsTerminal, source: winget }
+      id: WezTerm
+      directives: { description: WezTerm }
+      settings: { id: wez.wezterm, source: winget }
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: GlazeWM
       directives: { description: Gestor de ventanas en mosaico }

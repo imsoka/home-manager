@@ -1,5 +1,5 @@
 ﻿# Prepara el portátil Windows: WSL2 + NixOS-WSL, apps (winget), fuente, GlazeWM y
-# Windows Terminal. Se puede relanzar las veces que haga falta: salta lo ya hecho.
+# WezTerm. Se puede relanzar las veces que haga falta: salta lo ya hecho.
 #
 # PowerShell como administrador:
 #   Set-ExecutionPolicy -Scope Process Bypass
@@ -132,24 +132,11 @@ if ($glazeExe) {
     Note 'No encuentro glazewm.exe: añádelo a mano al arranque (shell:startup).'
 }
 
-# --- 6. Windows Terminal: perfil NixOS como fragmento + perfil por defecto ---
-Step 'Windows Terminal'
-$frag = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows Terminal\Fragments\soka'
-New-Item -ItemType Directory $frag -Force | Out-Null
-Copy-Item (Join-Path $here 'terminal\nixos.json') (Join-Path $frag 'nixos.json') -Force
-
-$wtSettings = Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json'
-$nixosGuid = '{291458d9-e6d7-4535-ba9a-aab35f74b92b}'
-try {
-    if (-not (Test-Path $wtSettings)) { throw 'settings.json aún no existe (abre Windows Terminal una vez)' }
-    $wt = Get-Content $wtSettings -Raw | ConvertFrom-Json
-    $wt | Add-Member -NotePropertyName defaultProfile -NotePropertyValue $nixosGuid -Force
-    $wt | Add-Member -NotePropertyName confirmCloseAllTabs -NotePropertyValue $false -Force
-    # UTF-8 sin BOM (Set-Content -Encoding UTF8 de PS 5.1 añade BOM)
-    [IO.File]::WriteAllText($wtSettings, ($wt | ConvertTo-Json -Depth 32), (New-Object Text.UTF8Encoding $false))
-} catch {
-    Note "No pude fijar el perfil por defecto ($_). Hazlo en Configuración > Inicio > Perfil predeterminado: NixOS."
-}
+# --- 6. WezTerm ---
+Step 'WezTerm'
+$wezDir = Join-Path $env:USERPROFILE '.config\wezterm'
+New-Item -ItemType Directory $wezDir -Force | Out-Null
+Copy-Item (Join-Path $here 'wezterm\wezterm.lua') (Join-Path $wezDir 'wezterm.lua') -Force
 
 # --- 7. Lo que queda a mano ---
 Step 'Pendiente a mano'

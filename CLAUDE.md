@@ -8,7 +8,7 @@ Configuración según `hostname`: `sokix` → `.#soka`, `sokix-work` → `.#soka
 - Pegasus (biblioteca para mando/Moonlight, tema reprise y sus parches, instalar/desinstalar) → `programs/pegasus/`; la biblioteca se genera con `pegasus-library.py`.
 - Noctalia (barra/shell): plugins en `programs/noctalia/` (`gaming.nix`, `claude-sessions.nix`, `wallpaper.nix`, `vpn-rema/`).
 - GTK y tema → `programs/gtk/gtk.nix` (genera `gtk.css` con el import de Noctalia).
-- Windows (portátil con sokix-wsl; no lo evalúa Nix) → `windows/`: `configuration.winget` (apps), `glazewm/` (config con Win como Mod calcando niri + `lock.ps1` para Win+Ctrl+L), `terminal/nixos.json` (fragmento de Windows Terminal) e `install.ps1`, que lo instala/copia todo y es relanzable. Tras editar algo de aquí, relanza `install.ps1` en Windows (o copia el fichero). Los `.ps1` llevan BOM UTF-8 para que PowerShell 5.1 lea bien los acentos.
+- Windows (portátil con sokix-wsl; no lo evalúa Nix) → `windows/`: `configuration.winget` (apps), `glazewm/` (config con Win como Mod calcando niri + `lock.ps1` para Win+Ctrl+L), `wezterm/wezterm.lua` (terminal: abre NixOS-WSL, con el protocolo gráfico de kitty para snacks.image) e `install.ps1`, que lo instala/copia todo y es relanzable. Tras editar algo de aquí, relanza `install.ps1` en Windows (o copia el fichero). Los `.ps1` llevan BOM UTF-8 para que PowerShell 5.1 lea bien los acentos.
 
 ## Aplicar
 1. Ficheros nuevos: `git add` antes del switch, o el flake no los ve.

@@ -113,7 +113,7 @@ binding_modes:
 
 keybindings:
   # Programas y sesión (Mod+Return, Mod+Shift+Q, Mod+Shift+E, Mod+Ctrl+L)
-  - commands: ['shell-exec wt']
+  - commands: ['shell-exec %ProgramFiles%\WezTerm\wezterm-gui.exe']
     bindings: ['lwin+enter']
   - commands: ['close']
     bindings: ['lwin+shift+q']

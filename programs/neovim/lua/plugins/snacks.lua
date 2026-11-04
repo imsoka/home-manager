@@ -4,6 +4,14 @@ local Snacks = require("snacks")
 -- lazygit escribe su tema en stdpath("cache") sin crear el directorio: si falta, falla con E482
 vim.fn.mkdir(vim.fn.stdpath("cache"), "p")
 
+-- WSL: el terminal (WezTerm) corre en Windows y no puede leer rutas de WSL como /tmp/...;
+-- SNACKS_SSH hace que snacks.image mande los datos de la imagen y no la ruta.
+-- SNACKS_WEZTERM fuerza la detección por si la consulta al terminal no atraviesa ConPTY.
+if vim.fn.has("wsl") == 1 then
+  vim.env.SNACKS_SSH = vim.env.SNACKS_SSH or "1"
+  vim.env.SNACKS_WEZTERM = vim.env.SNACKS_WEZTERM or "1"
+end
+
 Snacks.setup({
   bigfile = { enabled = true },
   quickfile = { enabled = true },
