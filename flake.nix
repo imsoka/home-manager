@@ -77,6 +77,8 @@
           ./programs/noctalia/wallpaper.nix
           # i3 ya no se usa aquí: se conserva su config (i3.nix) pero sin instalarlo
           { xsession.windowManager.i3.enable = nixpkgs.lib.mkForce false; }
+          # node para el hook UserPromptSubmit del plugin ponytail (node -e ...)
+          { home.packages = [ pkgs.nodejs ]; }
         ];
       };
     };
