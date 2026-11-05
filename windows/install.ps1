@@ -265,7 +265,22 @@ Start-Service ssh-agent
     if ($rc -ne 0) { Note 'No se pudo activar ssh-agent (¿lo bloquea la política de la empresa?).' }
 }
 
-# --- 9. Lo que queda a mano ---
+# --- 9. Claude Code: mismo inicio de sesión que en NixOS-WSL (programs/claude/claude.nix).
+# El token (claude setup-token) vive solo en el fichero de WSL; aquí se copia a una
+# variable de usuario. Relanzar tras renovarlo.
+Step 'Token de Claude Code'
+$tokenFile = '\\wsl.localhost\NixOS\home\soka\.config\claude-code\oauth-token'
+if (Test-Path $tokenFile) {
+    $token = (Get-Content $tokenFile -Raw).Trim()
+    if ([Environment]::GetEnvironmentVariable('CLAUDE_CODE_OAUTH_TOKEN', 'User') -ne $token) {
+        [Environment]::SetEnvironmentVariable('CLAUDE_CODE_OAUTH_TOKEN', $token, 'User')
+        Note 'Actualizado (abre una terminal nueva para usarlo).'
+    } else { Note 'Ya está al día.' }
+} else {
+    Note "No existe $tokenFile : genera uno en WSL con 'claude setup-token' (ver programs/claude/claude.nix)."
+}
+
+# --- 10. Lo que queda a mano ---
 Step 'Pendiente a mano'
 Note 'FortiClient VPN (VPN rema): https://www.fortinet.com/support/product-downloads'
 Note 'LibreSprite: https://libresprite.github.io'

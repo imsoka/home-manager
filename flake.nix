@@ -66,7 +66,7 @@
       # sin escritorio. home-manager switch --flake .#soka-wsl
       homeConfigurations."soka-wsl" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
-        modules = [ ./home-cli.nix ];
+        modules = [ ./home-cli.nix ./programs/claude/claude.nix ];
       };
 
       # Personal: home-manager switch --flake .#soka
