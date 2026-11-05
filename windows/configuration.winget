@@ -52,6 +52,10 @@ properties:
       id: Claude
       directives: { description: Claude }
       settings: { id: Anthropic.Claude, source: winget }
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: ClaudeCode
+      directives: { description: Claude Code (CLI) }
+      settings: { id: Anthropic.ClaudeCode, source: winget }
     # Desinstaladas: winget no recuerda lo que instaló, así que lo que se quite se deja aquí con
     # Ensure: Absent para que `winget configure` lo desinstale. (Teams no: lo gestiona la organización.)
     - resource: Microsoft.WinGet.DSC/WinGetPackage
