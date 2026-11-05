@@ -40,6 +40,7 @@
     else
       noctalia)
     wtype
+    wowup-cf
   ];
 
   home.file = {
