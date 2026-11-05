@@ -5,9 +5,12 @@
 -- en cualquier otro sitio la personal (~/.claude). Tiene que fijarse antes de cargar el plugin,
 -- que lee CLAUDE_CONFIG_DIR al arrancar para saber dónde dejar el lock que busca `claude`;
 -- el `claude` del panel (y cualquier terminal abierta desde nvim) hereda la misma cuenta.
+-- En sokix-wsl (equipo solo de trabajo) hay una única cuenta: siempre ~/.claude.
 local work_dir = vim.fs.normalize("~/projects/work")
 local cwd = vim.fs.normalize(vim.fn.getcwd())
-if cwd == work_dir or vim.startswith(cwd, work_dir .. "/") then
+if vim.fn.hostname() == "sokix-wsl" then
+  vim.env.CLAUDE_CONFIG_DIR = nil
+elseif cwd == work_dir or vim.startswith(cwd, work_dir .. "/") then
   vim.env.CLAUDE_CONFIG_DIR = vim.fs.normalize("~/.claude-work")
 else
   vim.env.CLAUDE_CONFIG_DIR = nil
