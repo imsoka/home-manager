@@ -10,7 +10,10 @@
     enable = true;
     bashrcExtra = ''
       if [ -r "$HOME/.config/claude-code/oauth-token" ]; then
-        export CLAUDE_CODE_OAUTH_TOKEN="$(< "$HOME/.config/claude-code/oauth-token")"
+        # setup-token parte el token en varias líneas al mostrarlo: se quitan los espacios
+        _cct="$(< "$HOME/.config/claude-code/oauth-token")"
+        export CLAUDE_CODE_OAUTH_TOKEN="''${_cct//[[:space:]]/}"
+        unset _cct
       fi
     '';
   };

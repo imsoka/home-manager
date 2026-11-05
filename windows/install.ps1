@@ -271,7 +271,7 @@ Start-Service ssh-agent
 Step 'Token de Claude Code'
 $tokenFile = '\\wsl.localhost\NixOS\home\soka\.config\claude-code\oauth-token'
 if (Test-Path $tokenFile) {
-    $token = (Get-Content $tokenFile -Raw).Trim()
+    $token = (Get-Content $tokenFile -Raw) -replace '\s', ''   # setup-token lo parte en líneas
     if ([Environment]::GetEnvironmentVariable('CLAUDE_CODE_OAUTH_TOKEN', 'User') -ne $token) {
         [Environment]::SetEnvironmentVariable('CLAUDE_CODE_OAUTH_TOKEN', $token, 'User')
         Note 'Actualizado (abre una terminal nueva para usarlo).'
