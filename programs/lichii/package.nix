@@ -71,13 +71,13 @@ in
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "lichii";
-  version = "nx2-29571ea";
+  version = "nx2-build-75";
 
   src = fetchFromGitHub {
     owner = "zortos293";
     repo = "Lichii";
-    rev = "29571ea9d74b0999ac900255220a40f90a865cec";
-    hash = "sha256-VW9Mf4BKiIcTgdEBFv+kqC3723Tk90kI8SOxbr16WIA=";
+    rev = "c9ebb5c3af672a0472ca0811392f04fab10203ab";
+    hash = "sha256-zstI5ulYWk2BiReAIq6b05clq01Djh6DPpmRO55vrXQ=";
   };
 
   strictDeps = true;
