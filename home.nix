@@ -14,6 +14,7 @@
     ./programs/learnharness/learnharness.nix
     ./programs/eglantine/eglantine.nix
     ./programs/lichii/lichii.nix
+    ./programs/lichii-shader-sync/lichii-shader-sync.nix
     ./window-managers/niri/niri.nix
   ];
 
