@@ -1,6 +1,6 @@
 # Home Manager (flake)
 
-Configuración según `hostname`: `sokix` → `.#soka`, `sokix-work` → `.#soka-work`. `home.nix` es común; los módulos exclusivos de cada máquina se añaden en `flake.nix` (personal: steam, discord, pegasus, soh, noctalia/gaming; work: noctalia/noctalia.nix y el parche de huella vía `fingerprintPatch`).
+Configuración según `hostname`: `sokix` → `.#soka`, `sokix-work` → `.#soka-work`, `sokix-wsl` → `.#soka-wsl`. `home-cli.nix` es la base de terminal (neovim, codex, usuario, stateVersion) y la única que usa `soka-wsl`; `home.nix` la importa y añade el escritorio (niri, Noctalia, GTK, kitty…) común a `soka` y `soka-work`. Lo exclusivo de cada máquina se añade en `flake.nix` (personal: steam, discord, pegasus, soh, noctalia/gaming; work: noctalia/noctalia.nix y el parche de huella vía `fingerprintPatch`). Algo nuevo de terminal va en `home-cli.nix`; algo gráfico, en `home.nix`.
 
 ## Dónde vive cada cosa
 - niri: reglas de ventanas, workspaces, atajos → `window-managers/niri/config.kdl`; `niri.nix` solo lo enlaza.
@@ -8,6 +8,7 @@ Configuración según `hostname`: `sokix` → `.#soka`, `sokix-work` → `.#soka
 - Pegasus (biblioteca para mando/Moonlight, tema reprise y sus parches, instalar/desinstalar) → `programs/pegasus/`; la biblioteca se genera con `pegasus-library.py`.
 - Noctalia (barra/shell): plugins en `programs/noctalia/` (`gaming.nix`, `claude-sessions.nix`, `wallpaper.nix`, `vpn-rema/`).
 - GTK y tema → `programs/gtk/gtk.nix` (genera `gtk.css` con el import de Noctalia).
+- Windows (portátil con sokix-wsl; no lo evalúa Nix) → `windows/`: `configuration.winget` (apps; para desinstalar una, no la borres: déjala con `Ensure: Absent`, porque winget no recuerda lo que instaló), `wezterm/wezterm.lua` (terminal: abre NixOS-WSL, con el protocolo gráfico de kitty para snacks.image) e `install.ps1`, que lo instala/copia todo y es relanzable. `install.ps1` se ejecuta con el usuario normal (las distros de WSL, fuentes y configs son por usuario y la elevación puede usar otra cuenta); solo los pasos de equipo van por `Invoke-Elevated`, y lo que deban escribir del usuario va a `HKEY_USERS\<SID>`. `revert-admin.ps1` deshace lo que una versión anterior aplicó a la cuenta de administrador. Tras editar algo de aquí, relanza `install.ps1` en Windows (o copia el fichero). Los `.ps1` llevan BOM UTF-8 para que PowerShell 5.1 lea bien los acentos.
 
 ## Aplicar
 1. Ficheros nuevos: `git add` antes del switch, o el flake no los ve.

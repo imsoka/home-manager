@@ -1,0 +1,76 @@
+# yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
+# Apps nativas del portátil Windows (lo de terminal vive en NixOS-WSL, ver soka-wsl).
+# Aplicar: winget configure -f configuration.winget --accept-configuration-agreements
+# (lo hace install.ps1). Sin winget: LearnHarness (install.ps1 la baja de GitHub),
+# FortiClient VPN y LibreSprite (a mano).
+properties:
+  configurationVersion: 0.2.0
+  resources:
+    # Terminal
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: WezTerm
+      directives: { description: WezTerm }
+      settings: { id: wez.wezterm, source: winget }
+    # Portapapeles de Neovim en WSL: lo encuentra en el PATH de Windows
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: win32yank
+      directives: { description: win32yank }
+      settings: { id: equalsraf.win32yank, source: winget }
+
+    # Base (base-programs.nix)
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Brave
+      directives: { description: Brave }
+      settings: { id: Brave.Brave, source: winget }
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: KeePassXC
+      directives: { description: KeePassXC }
+      settings: { id: KeePassXCTeam.KeePassXC, source: winget }
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Nextcloud
+      directives: { description: Nextcloud }
+      settings: { id: Nextcloud.NextcloudDesktop, source: winget }
+
+    # Trabajo (hosts/work/applications.nix, ia.nix)
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: VSCodium
+      directives: { description: VSCodium }
+      settings: { id: VSCodium.VSCodium, source: winget }
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Cursor
+      directives: { description: Cursor }
+      settings: { id: Anysphere.Cursor, source: winget }
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: DBeaver
+      directives: { description: DBeaver Community }
+      settings: { id: DBeaver.DBeaver.Community, source: winget }
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: GrokBot
+      directives: { description: Grok Bot }
+      settings: { id: xAI.GrokBot, source: winget }
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Claude
+      directives: { description: Claude }
+      settings: { id: Anthropic.Claude, source: winget }
+    # Desinstaladas: winget no recuerda lo que instaló, así que lo que se quite se deja aquí con
+    # Ensure: Absent para que `winget configure` lo desinstale. (Teams no: lo gestiona la organización.)
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: mpv
+      directives: { description: mpv (desinstalar) }
+      settings: { id: shinchiro.mpv, source: winget, Ensure: Absent }
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Anki
+      directives: { description: Anki (desinstalar) }
+      settings: { id: Anki.Anki, source: winget, Ensure: Absent }
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Tailscale
+      directives: { description: Tailscale (desinstalar) }
+      settings: { id: Tailscale.Tailscale, source: winget, Ensure: Absent }
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: GlazeWM
+      directives: { description: GlazeWM (desinstalar) }
+      settings: { id: glzr-io.glazewm, source: winget, Ensure: Absent }
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Zebar
+      directives: { description: Zebar (desinstalar) }
+      settings: { id: glzr-io.zebar, source: winget, Ensure: Absent }

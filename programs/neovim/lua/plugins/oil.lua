@@ -1,6 +1,7 @@
 -- oil: el directorio se edita como un buffer y los cambios se aplican con :w
 require("oil").setup({
   default_file_explorer = true,
+  watch_for_changes = true,
   view_options = { show_hidden = true },
   skip_confirm_for_simple_edits = true,
   keymaps = {

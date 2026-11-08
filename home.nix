@@ -2,11 +2,11 @@
 { config, pkgs, fingerprintPatch ? false, ... }:
 
 {
+  # Escritorio encima de la base de terminal (home-cli.nix, que también usa soka-wsl).
   imports = [
-    ./programs/neovim/neovim.nix
+    ./home-cli.nix
     ./programs/kitty/kitty.nix
     ./programs/noctalia/claude-sessions.nix
-    ./programs/codex/codex.nix
     ./programs/gtk/gtk.nix
     ./window-managers/i3/i3.nix
     ./programs/keepassxc/keepassxc.nix
@@ -18,11 +18,6 @@
     ./window-managers/niri/niri.nix
   ];
 
-  # Home Manager needs a bit of information about you and the paths it should
-  # manage.
-  home.username = "soka";
-  home.homeDirectory = "/home/soka";
-
   # The home.packages option allows you to install Nix packages into your
   # environment.
   home.packages = with pkgs; [
@@ -32,7 +27,6 @@
     slurp
     brightnessctl
     playerctl
-    jq
     # Noctalia; con fingerprintPatch, el icono de huella rojo/verde en bloqueo y polkit
     (if fingerprintPatch then
       noctalia.overrideAttrs (old: {
@@ -47,8 +41,6 @@
   home.file = {
   };
 
-  home.stateVersion = "24.05"; # Please read the comment before changing.
-
   home.pointerCursor = {
     enable = true;
     name = "everforest-cursors";
@@ -58,7 +50,5 @@
     x11.enable = true;
   };
 
-  # Let Home Manager install and manage itself.
-  programs.home-manager.enable = true;
   xsession.windowManager.i3.enable = true;
 }

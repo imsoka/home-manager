@@ -62,6 +62,13 @@
         # to pass through arguments to home.nix
       };
 
+      # WSL en el portátil Windows (host NixOS sokix-wsl): solo la base de terminal,
+      # sin escritorio. home-manager switch --flake .#soka-wsl
+      homeConfigurations."soka-wsl" = home-manager.lib.homeManagerConfiguration {
+        inherit pkgs;
+        modules = [ ./home-cli.nix ];
+      };
+
       # Personal: home-manager switch --flake .#soka
       homeConfigurations."soka" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
