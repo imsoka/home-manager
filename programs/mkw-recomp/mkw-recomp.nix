@@ -11,8 +11,9 @@ in {
   xdg.configFile."pegasus-library/native/mkw-recomp.json".text = builtins.toJSON {
     id = "mkw-recomp";
     title = "Mario Kart World (recomp)";
-    # Ruta del sistema, no del store: steam-run es el de NixOS
-    launch = "/run/current-system/sw/bin/steam-run ${game}/pkg/AppRun --play";
+    # Ruta del sistema, no del store: steam-run es el de NixOS. Sin sparse
+    # images el driver NVIDIA de la RTX 2070 no pierde el dispositivo al arrancar
+    launch = "env MKW_SPARSE_IMAGES=0 /run/current-system/sw/bin/steam-run ${game}/pkg/AppRun --play";
     summary = "Port nativo de Mario Kart World (mkw-recomp v0.1.2). Necesita el juego preparado desde tu dump.";
   };
 }
