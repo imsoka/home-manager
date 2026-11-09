@@ -81,6 +81,7 @@
           ./programs/discord/discord.nix
           ./programs/pegasus/pegasus.nix
           ./programs/soh/soh.nix
+          ./programs/mkw-recomp/mkw-recomp.nix
           ./programs/noctalia/wallpaper.nix
           # i3 ya no se usa aquí: se conserva su config (i3.nix) pero sin instalarlo
           { xsession.windowManager.i3.enable = nixpkgs.lib.mkForce false; }
