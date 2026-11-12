@@ -1,6 +1,6 @@
 # Home Manager (flake)
 
-Configuración según `hostname`: `sokix` → `.#soka`, `sokix-work` → `.#soka-work`, `sokix-wsl` → `.#soka-wsl`. `home-cli.nix` es la base de terminal (neovim, codex, usuario, stateVersion) y la única que usa `soka-wsl`; `home.nix` la importa y añade el escritorio (niri, Noctalia, GTK, kitty…) común a `soka` y `soka-work`. Lo exclusivo de cada máquina se añade en `flake.nix` (personal: steam, discord, pegasus, soh, noctalia/gaming; work: noctalia/noctalia.nix y el parche de huella vía `fingerprintPatch`). Algo nuevo de terminal va en `home-cli.nix`; algo gráfico, en `home.nix`.
+Configuración según `hostname`: `sokix` → `.#soka`, `sokix-wsl` → `.#soka-wsl`. `home-cli.nix` es la base de terminal (neovim, codex, usuario, stateVersion) y la única que usa `soka-wsl`; `home.nix` la importa y añade el escritorio (niri, Noctalia, GTK, kitty…) de `soka`. Lo exclusivo de `soka` se añade en `flake.nix` (steam, discord, pegasus, soh, noctalia/gaming). Algo nuevo de terminal va en `home-cli.nix`; algo gráfico, en `home.nix`.
 
 ## Dónde vive cada cosa
 - niri: reglas de ventanas, workspaces, atajos → `window-managers/niri/config.kdl`; `niri.nix` solo lo enlaza.

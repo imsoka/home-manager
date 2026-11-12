@@ -1,5 +1,4 @@
-# fingerprintPatch: solo el portátil (soka-work) lleva el icono de huella en Noctalia.
-{ config, pkgs, fingerprintPatch ? false, ... }:
+{ config, pkgs, ... }:
 
 {
   # Escritorio encima de la base de terminal (home-cli.nix, que también usa soka-wsl).
@@ -27,13 +26,7 @@
     slurp
     brightnessctl
     playerctl
-    # Noctalia; con fingerprintPatch, el icono de huella rojo/verde en bloqueo y polkit
-    (if fingerprintPatch then
-      noctalia.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ [ ./programs/noctalia/fingerprint-lockscreen.patch ];
-      })
-    else
-      noctalia)
+    noctalia
     wtype
     wowup-cf
   ];
