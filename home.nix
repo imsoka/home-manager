@@ -12,6 +12,9 @@
     ./programs/keepassxc/keepassxc.nix
     ./programs/goldendict/goldendict.nix
     ./programs/learnharness/learnharness.nix
+    ./programs/eglantine/eglantine.nix
+    ./programs/lichii/lichii.nix
+    ./programs/lichii-shader-sync/lichii-shader-sync.nix
     ./window-managers/niri/niri.nix
   ];
 
@@ -32,6 +35,7 @@
     else
       noctalia)
     wtype
+    wowup-cf
   ];
 
   home.file = {

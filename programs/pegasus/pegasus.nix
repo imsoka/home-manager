@@ -191,6 +191,8 @@ in {
         "PEGASUS_LIBRARY_INSTALL=${config.home.profileDirectory}/bin/heroic-install"
         "PEGASUS_LIBRARY_STEAM_INSTALL=${config.home.profileDirectory}/bin/steam-install"
         "PEGASUS_LIBRARY_PLAY=${config.home.profileDirectory}/bin/pegasus-play"
+        "PEGASUS_LIBRARY_EGLANTINE=${config.home.profileDirectory}/bin/eglantine"
+        "PEGASUS_LIBRARY_LICHII=${config.home.profileDirectory}/bin/lichii"
       ];
     };
   };

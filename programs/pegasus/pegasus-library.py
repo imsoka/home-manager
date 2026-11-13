@@ -10,6 +10,9 @@
 #   ~/.config/heroic, que ya tienen la biblioteca completa con imágenes.
 # - Nativos (ports de Linux sin tienda): un JSON por juego en
 #   ~/.config/pegasus-library/native, que escribe home-manager.
+# - Eglantine (emulador de Switch): cada archivo de SWITCH_GAMES (con
+#   subcarpetas) y cada carpeta extraída con base/exefs se abre a pantalla
+#   completa con `eglantine -f -g <ruta>`.
 #
 # El tiempo jugado sale de las tiendas y sustituye al que cuenta Pegasus en
 # stats.db: Pegasus lanza los juegos a través de Steam o Heroic, que son
@@ -24,6 +27,7 @@ import io
 import json
 import os
 import re
+import shlex
 import shutil
 import sqlite3
 import sys
@@ -54,6 +58,14 @@ HEROIC = HOME / ".config/heroic"
 PLAY_CMD = os.environ.get("PEGASUS_LIBRARY_PLAY", "pegasus-play")
 HEROIC_CMD = os.environ.get("PEGASUS_LIBRARY_HEROIC", "heroic")
 INSTALL_CMD = os.environ.get("PEGASUS_LIBRARY_INSTALL", "heroic-install")
+EGLANTINE_CMD = os.environ.get("PEGASUS_LIBRARY_EGLANTINE", "eglantine")
+# Mario Kart World (mkw.nup / carpeta mkw) se lanza con Lichii
+LICHII_CMD = os.environ.get("PEGASUS_LIBRARY_LICHII", "lichii")
+SWITCH_GAMES = Path(os.environ.get("PEGASUS_LIBRARY_SWITCH", "/games/Switch"))
+SWITCH_EXTS = (".nsp", ".nsz", ".xci", ".xcz", ".nup")
+# Carátulas de Switch a mano, fuera del repo (son arte de Nintendo):
+# <COVERS>/<id del juego>/boxFront.jpg o background.png, etc.
+EGLANTINE_COVERS = DATA / "covers/eglantine"
 STEAM_INSTALL_CMD = os.environ.get("PEGASUS_LIBRARY_STEAM_INSTALL",
                                    "steam-install")
 # Tiendas que heroic-install sabe instalar sin la ventana de Heroic
@@ -94,12 +106,12 @@ HEROIC_STORES = {
     "sideload": ("sideload_apps/library.json", "games", "Otros"),
 }
 COLLECTION_ORDER = ["Steam", "Epic", "GOG", "Amazon", "Zoom", "Otros",
-                    "Nativos"]
+                    "Eglantine", "Nativos"]
 # shortname de la colección: el tema Reprise pone el icono
 # assets/platforms/<shortname>.svg; sin icono muestra el nombre
 SHORTNAMES = {
     "Steam": "steam", "Epic": "epic", "GOG": "gog", "Amazon": "amazon",
-    "Nativos": "nixos",
+    "Nativos": "nixos", "Eglantine": "switch",
 }
 
 
@@ -596,6 +608,125 @@ def native_games():
     return games
 
 
+# --- Eglantine ------------------------------------------------------------
+
+# Carátulas de IGDB. Credenciales fuera del repo, en ~/.config/pegasus-library:
+# igdb-client-id e igdb-client-secret (de dev.twitch.tv). Sin ellas no sale
+# ninguna carátula descargada. IGDB_IDS guarda por juego {"id", "name",
+# "cover"}: la búsqueda por título se hace una vez; si acierta mal, se corrige
+# el id a mano y se borra "cover" para que se vuelva a buscar.
+IGDB_IDS = CONFIG / "igdb-eglantine.json"
+
+
+def igdb_session():
+    """(id de cliente, token) de IGDB, o None si no hay credenciales."""
+    try:
+        cid = (CONFIG / "igdb-client-id").read_text().strip()
+        secret = (CONFIG / "igdb-client-secret").read_text().strip()
+        query = urllib.parse.urlencode({
+            "client_id": cid, "client_secret": secret,
+            "grant_type": "client_credentials",
+        })
+        req = urllib.request.Request(
+            f"https://id.twitch.tv/oauth2/token?{query}", data=b"",
+            method="POST")
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            return cid, json.load(resp)["access_token"]
+    except (OSError, ValueError, KeyError) as e:
+        print(f"igdb: sin carátulas ({e})", file=sys.stderr)
+        return None
+
+
+def igdb_post(endpoint, body, cid, token):
+    req = urllib.request.Request(
+        f"https://api.igdb.com/v4/{endpoint}", data=body.encode(),
+        headers={"Client-ID": cid, "Authorization": f"Bearer {token}",
+                 "User-Agent": "pegasus-library/1.0"})
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        return json.load(resp)
+
+
+def igdb_cache():
+    try:
+        return json.loads(IGDB_IDS.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def igdb_cover(key, search, session, cache):
+    """URL de la portada del juego en IGDB, o None."""
+    cid, token = session
+    entry = cache.get(key)
+    if entry is None:
+        found = igdb_post("games", f'search "{search.replace(chr(34), "")}"; '
+                          "fields name; limit 1;", cid, token)
+        if not found:
+            return None
+        entry = cache[key] = {"id": found[0]["id"], "name": found[0]["name"]}
+    if "cover" not in entry:
+        found = igdb_post("games", f"where id = {entry['id']}; "
+                          "fields cover.image_id;", cid, token)
+        entry["cover"] = (found[0].get("cover") or {}).get("image_id") \
+            if found else None
+    if not entry["cover"]:
+        return None
+    return ("https://images.igdb.com/igdb/image/upload/t_original/"
+            f"{entry['cover']}.jpg")
+
+
+def eglantine_games():
+    """Títulos de Switch en SWITCH_GAMES (con subcarpetas). Eglantine no
+    tiene biblioteca que leer, así que cada archivo es un juego. Las
+    carpetas extraídas (base/ con exefs y romfs) también lo son: se
+    nombran por la carpeta y no se baja a sus subcarpetas."""
+    if not SWITCH_GAMES.is_dir():
+        return []
+    paths = [p for p in sorted(SWITCH_GAMES.rglob("*"))
+             if p.suffix.lower() in SWITCH_EXTS and p.is_file()]
+    paths += [p for p in sorted(SWITCH_GAMES.iterdir())
+              if (p / "base" / "exefs").is_dir()]
+    games, plans = [], {}
+    session = igdb_session()
+    cache = igdb_cache()
+    for path in paths:
+        rel = path.relative_to(SWITCH_GAMES)
+        # Un archivo se nombra sin extensión: mkw.nup es el id "mkw"
+        key = rel.with_suffix("") if path.is_file() else rel
+        idx = len(games)
+        # Eglantine carga las carpetas extraídas desde base/exefs: su cargador
+        # busca la romfs junto a la carpeta exefs
+        target = path / "base" / "exefs" if path.is_dir() else path
+        games.append(Game(
+            source="eglantine",
+            id=str(key),
+            title=path.stem if path.is_file() else path.name,
+            installed=True,
+            launch=f"{LICHII_CMD if str(key) == 'mkw' else EGLANTINE_CMD}"
+                   f" -f -g {shlex.quote(str(target))}",
+            collection="Eglantine",
+        ))
+        safe_id = re.sub(r"[^A-Za-z0-9._-]", "_", str(key))
+        cover = None
+        if session:
+            try:
+                cover = igdb_cover(str(key), path.stem if path.is_file()
+                                   else path.name, session, cache)
+            except (OSError, ValueError, KeyError) as e:
+                print(f"igdb: {key}: {e}", file=sys.stderr)
+        for asset in ASSET_SIZES:
+            local = [EGLANTINE_COVERS / str(key) / (asset + ext)
+                     for ext in (".jpg", ".png", ".webp")]
+            remote = [cover] if asset == "boxFront" and cover else []
+            if any(s.is_file() for s in local) or remote:
+                dest = MEDIA / "eglantine" / safe_id / (asset + ".webp")
+                plans[(idx, asset)] = (dest, local + remote)
+    if session:
+        IGDB_IDS.write_text(json.dumps(cache, indent=2, ensure_ascii=False)
+                            + "\n", encoding="utf-8")
+    resolve_assets(games, plans)
+    return games
+
+
 # --- Salida para Pegasus --------------------------------------------------
 
 def clean(text):
@@ -695,6 +826,7 @@ def update_stats(games):
 def main():
     games = []
     for name, plugin in (("steam", steam_games), ("heroic", heroic_games),
+                         ("eglantine", eglantine_games),
                          ("nativos", native_games)):
         try:
             found = plugin()
