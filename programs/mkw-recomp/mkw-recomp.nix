@@ -22,5 +22,14 @@ in {
     title = "Mario Kart World (recomp)";
     inherit launch;
     summary = "Port nativo de Mario Kart World (mkw-recomp v0.1.7). Necesita el juego preparado desde tu dump.";
+    developers = [ "Nintendo EPD" ];
+    publishers = [ "Nintendo" ];
+    release = "2025-06-05";
+    # IGDB: portada, key art sin logo y logo en color
+    assets = {
+      boxFront = "https://images.igdb.com/igdb/image/upload/t_original/cob9s9.jpg";
+      background = "https://images.igdb.com/igdb/image/upload/t_original/ar3o77.jpg";
+      logo = "https://images.igdb.com/igdb/image/upload/t_original/ar3o7c.png";
+    };
   };
 }
