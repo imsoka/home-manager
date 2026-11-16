@@ -23,7 +23,7 @@
     "learnharness-release": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-9WXHmEKqH9INpzviYvF3MfC9oRxBgv7wbf14eumiW3s=",
+        "narHash": "sha256-jD3R+qoFUAQMUFheRyIxbfrDsjZ/49PC5St7Kvj0vG8=",
         "type": "file",
         "url": "https://api.github.com/repos/amosblomqvist/learnharness/releases/latest"
       },
