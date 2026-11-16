@@ -17,7 +17,9 @@ in {
   xdg.configFile."pegasus-library/native/longshot.json".text = builtins.toJSON {
     id = "longshot";
     title = "The Legend of Zelda: Ocarina of Time (Longshot)";
-    inherit launch;
+    # Por XWayland: ferriscope (Moonshine) deja delante la primera ventana
+    # Wayland nativa, que es Pegasus, y el juego quedaría oculto detrás
+    launch = "/run/current-system/sw/bin/env SDL_VIDEODRIVER=x11 ${launch}";
     developers = [ "Nintendo EPD" ];
     publishers = [ "Nintendo" ];
     release = "2026-11-05";
