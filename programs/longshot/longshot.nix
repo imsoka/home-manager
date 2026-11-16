@@ -21,7 +21,7 @@ in {
     # Wayland nativa, que es Pegasus, y el juego quedaría oculto detrás.
     # Audio por Pulse: SDL3 iría a PipeWire directo y se saltaría el
     # PULSE_SERVER de Moonshine, y el sonido saldría por el PC
-    launch = "/run/current-system/sw/bin/env SDL_VIDEODRIVER=x11 SDL_AUDIO_DRIVER=pulseaudio ${launch}";
+    launch = "/run/current-system/sw/bin/env SDL_VIDEO_DRIVER=x11 SDL_AUDIO_DRIVER=pulseaudio ${launch}";
     developers = [ "Nintendo EPD" ];
     publishers = [ "Nintendo" ];
     release = "2026-11-05";
