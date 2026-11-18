@@ -48,7 +48,13 @@
       # sin escritorio. home-manager switch --flake .#soka-wsl
       homeConfigurations."soka-wsl" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
-        modules = [ ./home-cli.nix ./programs/claude/claude.nix ];
+        modules = [
+          ./home-cli.nix
+          ./programs/claude/claude.nix
+          # NixOS no tiene caché de ldconfig: nvidia-smi (de Windows, en /usr/lib/wsl/lib)
+          # no encuentra libnvidia-ml.so.1 si no se le indica dónde está
+          { programs.bash.shellAliases.nvidia-smi = "LD_LIBRARY_PATH=/usr/lib/wsl/lib /usr/lib/wsl/lib/nvidia-smi"; }
+        ];
       };
 
       # Personal: home-manager switch --flake .#soka
