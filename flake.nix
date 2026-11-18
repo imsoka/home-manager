@@ -53,8 +53,14 @@
           ./programs/claude/claude.nix
           ./programs/opencode/opencode.nix
           # NixOS no tiene caché de ldconfig: nvidia-smi (de Windows, en /usr/lib/wsl/lib)
-          # no encuentra libnvidia-ml.so.1 si no se le indica dónde está
-          { programs.bash.shellAliases.nvidia-smi = "LD_LIBRARY_PATH=/usr/lib/wsl/lib /usr/lib/wsl/lib/nvidia-smi"; }
+          # no encuentra libnvidia-ml.so.1 si no se le indica dónde está. Va como wrapper
+          # delante en el PATH (no alias) para que lo usen también otros programas (llmfit…)
+          ({ pkgs, ... }: let
+            nvidia-smi = pkgs.writeShellScriptBin "nvidia-smi" ''
+              export LD_LIBRARY_PATH=/usr/lib/wsl/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+              exec /usr/lib/wsl/lib/nvidia-smi "$@"
+            '';
+          in { home.sessionVariablesExtra = ''export PATH="${nvidia-smi}/bin:$PATH"''; })
         ];
       };
 
