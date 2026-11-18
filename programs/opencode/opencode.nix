@@ -20,7 +20,12 @@
       npm = "@ai-sdk/openai-compatible";
       name = "Ollama (local)";
       options.baseURL = "http://localhost:11434/v1";
-      models = { };
+      models = {
+        # GGUF de sharunkrish/whiterabbitneo-2.5-qwen-2.5-coder-7b-awq (AWQ no va en
+        # ollama). Alias: `ollama create whiterabbitneo:7b -f whiterabbitneo.Modelfile`: num_ctx 16384 + plantilla Qwen2.5
+        # con tools (la del GGUF no los soporta y opencode los necesita).
+        "whiterabbitneo:7b".name = "WhiteRabbitNeo 2.5 Qwen2.5 Coder 7B";
+      };
     };
   };
 }
