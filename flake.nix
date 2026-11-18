@@ -51,6 +51,7 @@
         modules = [
           ./home-cli.nix
           ./programs/claude/claude.nix
+          ./programs/opencode/opencode.nix
           # NixOS no tiene caché de ldconfig: nvidia-smi (de Windows, en /usr/lib/wsl/lib)
           # no encuentra libnvidia-ml.so.1 si no se le indica dónde está
           { programs.bash.shellAliases.nvidia-smi = "LD_LIBRARY_PATH=/usr/lib/wsl/lib /usr/lib/wsl/lib/nvidia-smi"; }
