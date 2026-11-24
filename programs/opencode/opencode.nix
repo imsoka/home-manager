@@ -3,19 +3,11 @@
 # listados en `models`: tras `ollama pull <modelo>`, añádelo ahí con su nombre exacto,
 # p. ej. "qwen3-coder:30b".name = "Qwen3 Coder 30B"; y, si quieres que sea el de
 # por defecto, model = "ollama/qwen3-coder:30b"; en settings.
-{ pkgs, ... }:
+{ ... }:
 
 {
   programs.opencode = {
     enable = true;
-    # El hash de node_modules de nixpkgs no coincide con lo que descarga bun (no está
-    # en la caché y se compila aquí). Quitar en cuanto nixpkgs lo corrija: si al
-    # actualizar vuelve a fallar con otro "got:", pon ese hash o borra el override.
-    package = pkgs.opencode.overrideAttrs (old: {
-      node_modules = old.node_modules.overrideAttrs {
-        outputHash = "sha256-prx9dX7kUvs/E3zopkaPk5LXh3xJAy5sZeum/W8L7cA=";
-      };
-    });
     settings.provider.ollama = {
       npm = "@ai-sdk/openai-compatible";
       name = "Ollama (local)";
