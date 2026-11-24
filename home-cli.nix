@@ -6,6 +6,7 @@
   imports = [
     ./programs/neovim/neovim.nix
     ./programs/codex/codex.nix
+    ./programs/claude/claude-code.nix
   ];
 
   # Home Manager needs a bit of information about you and the paths it should
